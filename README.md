@@ -1,12 +1,12 @@
 # Fence Dual-Goal Diagnosis
 
-A geofence data-quality and overlap-detection pipeline that answers two questions about a fence inventory before anyone builds decisions on top of it: **which fences are broken, and which fences describe the same piece of ground twice.**
+A geofence data-quality and overlap-detection pipeline that answers two questions about a fence inventory before anyone builds decisions on top of it: **which fences are broken, and which fences describe the same piece of ground twice.** It is the **foundation layer of the TopPrism Business World Model** — the spatial ground truth every higher layer stands on.
 
-`WORLD MODEL` · `REAL-DATA VALIDATED` · `ANONYMIZED OPERATIONAL DATA` · `MIT`
+`WORLD MODEL · FOUNDATION LAYER` · `REAL-DATA VALIDATED` · `ANONYMIZED OPERATIONAL DATA` · `MIT`
 
 > **World-model question:** Before you reason about territories, visits, coverage or catchments on a map of geofences — which fences can you trust, and which two fences are quietly the same place?
 
-Part of **TopPrism Business World Modeling**. This repository turns a raw fence export (points + polygon boundaries, mixed coordinate systems, inconsistent naming) into (1) a per-fence quality verdict with literature-grounded geometry diagnostics, and (2) a ranked list of candidate duplicate / overlapping fence pairs — with **zero automatic merges**.
+Part of **TopPrism Business World Modeling**. The Business World Model is built in layers, and this is layer zero: it turns a raw fence export (points + polygon boundaries, mixed coordinate systems, inconsistent naming) into (1) a per-fence quality verdict with literature-grounded geometry diagnostics, and (2) a ranked list of candidate duplicate / overlapping fence pairs — with **zero automatic merges**. Only after this gate does the fence inventory become trustworthy enough to hang entities, territories and decisions from.
 
 ## Why this exists
 
@@ -86,7 +86,20 @@ Every methodological step — coordinate offset correction, topology healing, sh
 
 ## Where it fits at TopPrism
 
-Part of the **Business World Model** layer: fences are the spatial backbone that territories, visit plans and catchment analyses hang from. This repo is the quality gate for that backbone. It complements [`bge-entity-match`](https://github.com/topprismdata/bge-entity-match) (name-only entity resolution): here resolution runs on *geometry + name together*, with spatial overlap as ground truth for recall.
+The base of the **Business World Model** stack:
+
+```
+Decision engines        territory design, visit planning, catchment analysis
+        ↓
+Canonical entity layer  ← bge-entity-match (name-based entity resolution)
+        ↓
+Trusted fence layer     ← this repo (coordinate + geometry QA, duplicate /
+                          overlap detection — the foundation)
+        ↓
+Raw fence export        mixed CRS, self-intersecting polygons, near-duplicate names
+```
+
+Fences are the spatial backbone every higher layer inherits. If the backbone is warped — coordinates offset by 500 m, one fence silently counted twice — every entity match, territory and visit plan built on it is quietly wrong. This repo hardens the backbone before anything is built on it, and complements [`bge-entity-match`](https://github.com/topprismdata/bge-entity-match): there resolution runs on *names only*; here it runs on *geometry + name together*, with spatial overlap as the recall ground truth.
 
 ## Quick start
 
@@ -132,6 +145,7 @@ topprism:
   purpose: world-model
   capability: geofence-quality-diagnosis
   platform_layer: business-world-model
+  stack_position: foundation   # layer zero: trusted fence geometry underpins all higher layers
   maturity: real-data-validated
   evidence:
     type: anonymized-operational-data

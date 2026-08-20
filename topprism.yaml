@@ -2,6 +2,7 @@ topprism:
   purpose: world-model
   capability: geofence-quality-diagnosis
   platform_layer: business-world-model
+  stack_position: foundation
   maturity: real-data-validated
   evidence:
     type: anonymized-operational-data
