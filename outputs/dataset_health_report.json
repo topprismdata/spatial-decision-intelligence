@@ -1,0 +1,57 @@
+{
+  "total_records": 9039,
+  "field_completeness": {
+    "name_null_rate": 0.0,
+    "address_null_rate": 0.0,
+    "point_null_rate": 0.0,
+    "zero_points_count": 505,
+    "geometry_null_rate": 0.0,
+    "admin_null_rate": 0.00011063170704723974
+  },
+  "geographic_distribution": {
+    "provinces": {
+      "河北省": 1608,
+      "北京市": 7431
+    },
+    "cities": {
+      "石家庄市": 1608,
+      "北京城区": 7431
+    }
+  },
+  "duplicate_risk": {
+    "same_city_name_duplicate_groups": 27,
+    "same_city_name_duplicate_records": 56,
+    "same_point_duplicate_groups": 3,
+    "same_point_duplicate_records": 509,
+    "identical_wkt_duplicate_groups": 0
+  },
+  "geometry_distribution": {
+    "invalid_geometry_count": 541,
+    "zero_area_count": 0,
+    "vertex_count_stats": {
+      "mean": 8.453368735479588,
+      "median": 7.0,
+      "max": 85,
+      "min": 4
+    },
+    "area_stats_deg2": {
+      "mean": 4.334214184976045e-06,
+      "median": 1.8930985000066344e-06,
+      "max": 0.0005851033720000556,
+      "min": 4.5000015511077175e-12
+    }
+  },
+  "coordinate_risk": {
+    "point_polygon_offset": {
+      "sample_size": 8534,
+      "d_lng_mean": 0.00774165504699003,
+      "d_lng_median": 0.006114722799232197,
+      "d_lng_std": 0.15472166543471214,
+      "d_lat_mean": 0.0008786682250133445,
+      "d_lat_median": 0.00124740633955156,
+      "d_lat_std": 0.031072009301496773
+    },
+    "systematic_offset_detected": true,
+    "inferred_offset_type": "WGS84_POINT_VS_GCJ02_POLYGON"
+  }
+}

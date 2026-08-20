@@ -1,0 +1,8 @@
+models/
+__pycache__/
+*.pyc
+.workbuddy/
+.DS_Store
+outputs/*.csv
+outputs/*.js
+outputs/*.html

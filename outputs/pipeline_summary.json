@@ -1,0 +1,35 @@
+{
+  "elapsed_seconds": 199.41,
+  "total_source_records": 9039,
+  "entity_type_distribution": {
+    "RESIDENTIAL_COMMUNITY": 6854,
+    "RESIDENTIAL_COURTYARD": 1187,
+    "RESIDENTIAL_DORMITORY": 734,
+    "MIXED_COMMERCIAL_RESIDENTIAL": 203,
+    "NON_RESIDENTIAL_FACILITY": 48,
+    "NON_RESIDENTIAL_COMMERCIAL": 13
+  },
+  "canonical_entities_created": 9039,
+  "geometry_versions_created": 9039,
+  "merged_clusters_count": 0,
+  "total_relations_detected": 13026,
+  "relation_type_breakdown": {
+    "SIBLING_COURTYARD": 5420,
+    "RELATED_ENTITY": 4935,
+    "SIBLING_SUBAREA": 2263,
+    "SIBLING_PHASE": 281,
+    "PHASE_TO_WHOLE": 59,
+    "WHOLE_TO_PHASE": 56,
+    "POSSIBLE_MERGE_ERROR": 12
+  },
+  "rerank_enabled": true,
+  "rerank_soft_pairs": 600,
+  "rerank_downgraded_to_not_same": 4,
+  "rerank_alias_confirmed": 281,
+  "invalid_topology_healed_count": 539,
+  "point_reconstructed_from_poly_count": 505,
+  "crs_conflict_aligned_count": 8332,
+  "rerank_sampled_mode": true,
+  "rerank_full_soft_count": 4935,
+  "rerank_elapsed_seconds": 1162.35
+}
