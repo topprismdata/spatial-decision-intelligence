@@ -1,0 +1,13 @@
+topprism:
+  purpose: world-model
+  capability: geofence-quality-diagnosis
+  platform_layer: business-world-model
+  maturity: real-data-validated
+  evidence:
+    type: anonymized-operational-data
+    scope: "9,039 geofences (Beijing + Shijiazhuang); 13,026 detected relations; 0 auto-merges"
+  product_context:
+    - data-standardization
+    - geofence-quality
+    - outlet-resolution
+    - business-world-model
