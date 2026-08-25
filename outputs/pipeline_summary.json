@@ -23,13 +23,16 @@
     "POSSIBLE_MERGE_ERROR": 12
   },
   "rerank_enabled": true,
-  "rerank_soft_pairs": 600,
-  "rerank_downgraded_to_not_same": 4,
-  "rerank_alias_confirmed": 281,
+  "rerank_soft_pairs": 4931,
+  "rerank_downgraded_to_not_same": 835,
+  "rerank_alias_confirmed": 1276,
   "invalid_topology_healed_count": 539,
   "point_reconstructed_from_poly_count": 505,
   "crs_conflict_aligned_count": 8332,
-  "rerank_sampled_mode": true,
-  "rerank_full_soft_count": 4935,
-  "rerank_elapsed_seconds": 1162.35
+  "rerank_sampled_mode": false,
+  "rerank_full_soft_count": 4931,
+  "rerank_elapsed_seconds": 443.17,
+  "tier_1_critical_count": 1311,
+  "tier_2_standard_count": 2808,
+  "tier_3_filtered_count": 8907
 }

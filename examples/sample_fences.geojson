@@ -1,0 +1,80 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "record_id": "SYN_001",
+        "name": "天琴家园一期",
+        "city": "北京市",
+        "district": "朝阳区",
+        "address": "朝阳北路101号",
+        "coord_type": "WGS84"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[116.450, 39.920], [116.453, 39.920], [116.453, 39.923], [116.450, 39.923], [116.450, 39.920]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "record_id": "SYN_002",
+        "name": "天琴家园二期",
+        "city": "北京市",
+        "district": "朝阳区",
+        "address": "朝阳北路103号",
+        "coord_type": "WGS84"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[116.452, 39.920], [116.455, 39.920], [116.455, 39.923], [116.452, 39.923], [116.452, 39.920]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "record_id": "SYN_003",
+        "name": "望京星河湾",
+        "city": "北京市",
+        "district": "朝阳区",
+        "address": "望京街88号",
+        "coord_type": "GCJ02_SHIFTED"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[116.480, 39.990], [116.484, 39.990], [116.484, 39.993], [116.480, 39.993], [116.480, 39.990]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "record_id": "SYN_004",
+        "name": "沿街商业窄条",
+        "city": "北京市",
+        "district": "海淀区",
+        "address": "中关村大街1号",
+        "coord_type": "NARROW_STRIP"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[116.3100, 39.9800], [116.3101, 39.9800], [116.3101, 39.9860], [116.3100, 39.9860], [116.3100, 39.9800]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "record_id": "SYN_005",
+        "name": "拓扑自相交蝴蝶结园区",
+        "city": "北京市",
+        "district": "西城区",
+        "address": "西直门外大街5号",
+        "coord_type": "BOWTIE_KNOT"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[116.350, 39.940], [116.353, 39.943], [116.353, 39.940], [116.350, 39.943], [116.350, 39.940]]]
+      }
+    }
+  ]
+}

@@ -1,8 +1,45 @@
-models/
+# Byte-compiled / optimized / virtualenv
 __pycache__/
-*.pyc
-.workbuddy/
-.DS_Store
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Models & Heavy Checkpoints
+models/
+*.pth
+*.pt
+*.bin
+*.safetensors
+*.onnx
+
+# Data Directories & Raw Excel Exports
+data/
+*.xlsx
+*.xls
+*.npz
+
+# Generated Outputs & Large Artifacts (Keep markdown documentation)
 outputs/*.csv
 outputs/*.js
 outputs/*.html
+outputs/*.json
+outputs/*.png
+outputs/*.pth
+outputs/*.pt
+
+# Secrets & Local Configurations
+.env
+.env.*
+*.secret
+
+# IDE & OS Artifacts
+.DS_Store
+.workbuddy/
+.idea/
+.vscode/
+*.swp

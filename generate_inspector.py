@@ -51,8 +51,13 @@ def _clean_nan(obj):
     return obj
 
 
-def is_beijing(city_str):
-    return city_str and '北京' in str(city_str)
+def get_city_bucket(city_str):
+    s = str(city_str or "")
+    if "北京" in s:
+        return "北京"
+    if "石家庄" in s:
+        return "石家庄"
+    return "其他"
 
 
 def build_pair(row, color_a="#2563eb", color_b="#10b981"):
@@ -78,40 +83,52 @@ def build_pair(row, color_a="#2563eb", color_b="#10b981"):
 
 
 # =====================================================================
-# Build ALL Beijing cases (no head limits)
+# Build Cases across ALL cities (Beijing + Shijiazhuang + other)
 # =====================================================================
-cases = {k: [] for k in [
+CATEGORIES = [
+    "TIER_1_CRITICAL", "TIER_2_STANDARD", "TIER_3_FILTERED",
     "REVIEW_QUEUE", "SIBLING", "COMPONENT_GATE", "MERGE_ERROR",
     "ZERO_POINTS", "TOPOLOGY_HEALED", "RERANK_DOWN", "RERANK_ALIAS",
-    "EXTREME_LONG",
-]}
+    "EXTREME_LONG"
+]
+cases = {k: [] for k in CATEGORIES}
 
-bj_rel = df_rel[df_rel["subject_city"].str.contains("北京", na=False)]
+# 0.1 Tier 1 Critical
+for _, row in df_rel[df_rel.get("tier_level", "") == "TIER_1_CRITICAL"].iterrows():
+    cases["TIER_1_CRITICAL"].append(build_pair(row, "#dc2626", "#f97316"))
+
+# 0.2 Tier 2 Standard
+for _, row in df_rel[df_rel.get("tier_level", "") == "TIER_2_STANDARD"].iterrows():
+    cases["TIER_2_STANDARD"].append(build_pair(row, "#2563eb", "#10b981"))
+
+# 0.3 Tier 3 Filtered
+for _, row in df_rel[df_rel.get("tier_level", "") == "TIER_3_FILTERED"].iterrows():
+    cases["TIER_3_FILTERED"].append(build_pair(row, "#64748b", "#94a3b8"))
 
 # 1. RELATED_ENTITY → 存疑待确认
-for _, row in bj_rel[bj_rel["relation_type"] == "RELATED_ENTITY"].sort_values("distance_m").iterrows():
+for _, row in df_rel[df_rel["relation_type"] == "RELATED_ENTITY"].sort_values("distance_m").iterrows():
     cases["REVIEW_QUEUE"].append(build_pair(row, "#2563eb", "#10b981"))
 
 # 2. SIBLING → 同名不同店
-for _, row in bj_rel[bj_rel["relation_type"].str.startswith("SIBLING")].sort_values(
+for _, row in df_rel[df_rel["relation_type"].str.startswith("SIBLING")].sort_values(
         "bge_sim", ascending=False).iterrows():
     cases["SIBLING"].append(build_pair(row, "#3b82f6", "#8b5cf6"))
 
 # 3. COMPONENT_GATE → 关键词不匹配
-gate = bj_rel[bj_rel["explain"].str.contains("结构化组件冲突", na=False) & (bj_rel["bge_sim"] >= 0.85)]
+gate = df_rel[df_rel["explain"].str.contains("结构化组件冲突", na=False) & (df_rel["bge_sim"] >= 0.85)]
 for _, row in gate.sort_values("bge_sim", ascending=False).iterrows():
     cases["COMPONENT_GATE"].append(build_pair(row, "#ef4444", "#f97316"))
 
 # 4. MERGE_ERROR → 围栏互相覆盖
-for _, row in bj_rel[bj_rel["relation_type"] == "POSSIBLE_MERGE_ERROR"].iterrows():
+for _, row in df_rel[df_rel["relation_type"] == "POSSIBLE_MERGE_ERROR"].iterrows():
     cases["MERGE_ERROR"].append(build_pair(row, "#ef4444", "#f97316"))
 
-# 5. ZERO_POINTS → 坐标缺失为零 (from df_qa, filter Beijing via rec_map)
-bj_qa_ids = {r.source_record_id for r in records if is_beijing(r.city_raw)}
-bj_qa = df_qa[df_qa["source_record_id"].isin(bj_qa_ids)]
-for _, row in bj_qa[bj_qa["coord_status"] == "SYSTEMATIC_OFFSET"].iterrows():
+# 5. ZERO_POINTS → 坐标缺失为零
+for _, row in df_qa[df_qa["coord_status"] == "SYSTEMATIC_OFFSET"].iterrows():
     s_id = row["source_record_id"]
-    r = rec_map[s_id]
+    r = rec_map.get(s_id)
+    if not r:
+        continue
     cases["ZERO_POINTS"].append({
         "title": f"坐标缺失为零: {r.name_raw}", "city": r.city_raw,
         "relation_type": "POINT_RECONSTRUCTED", "confidence": 0.98,
@@ -122,9 +139,11 @@ for _, row in bj_qa[bj_qa["coord_status"] == "SYSTEMATIC_OFFSET"].iterrows():
     })
 
 # 6. TOPOLOGY_HEALED → 边界打结已修复
-for _, row in bj_qa[bj_qa["qa_issues"].str.contains("TOPOLOGY_AUTO_HEALED", na=False)].iterrows():
+for _, row in df_qa[df_qa["qa_issues"].str.contains("TOPOLOGY_AUTO_HEALED", na=False)].iterrows():
     s_id = row["source_record_id"]
-    r = rec_map[s_id]
+    r = rec_map.get(s_id)
+    if not r:
+        continue
     cases["TOPOLOGY_HEALED"].append({
         "title": f"边界打结已修复: {r.name_raw}", "city": r.city_raw,
         "relation_type": "TOPOLOGY_AUTO_HEALED", "confidence": 0.85,
@@ -135,21 +154,23 @@ for _, row in bj_qa[bj_qa["qa_issues"].str.contains("TOPOLOGY_AUTO_HEALED", na=F
     })
 
 # 7. RERANK_DOWN → 名字差异较大
-for _, row in bj_rel[bj_rel["explain"].str.contains("CROSS_ENCODER_UNRELATED", na=False)].sort_values(
+for _, row in df_rel[df_rel["explain"].str.contains("CROSS_ENCODER_UNRELATED", na=False)].sort_values(
         "cross_encoder_score").iterrows():
     cases["RERANK_DOWN"].append(build_pair(row, "#ef4444", "#64748b"))
 
 # 8. RERANK_ALIAS → 可能是同一店
-for _, row in bj_rel[bj_rel["explain"].str.contains("CROSS_ENCODER_ALIAS_CONFIRMED", na=False)].sort_values(
+for _, row in df_rel[df_rel["explain"].str.contains("CROSS_ENCODER_ALIAS_CONFIRMED", na=False)].sort_values(
         "cross_encoder_score", ascending=False).iterrows():
     cases["RERANK_ALIAS"].append(build_pair(row, "#16a34a", "#22c55e"))
 
 # 9. NARROW_STRIP → 窄条退化围栏 (最大内切圆直径 < 50m, JTS/PostGIS 工业标准)
 extreme_ids = set()
-for _, row in bj_qa[bj_qa["qa_issues"].str.contains("NARROW_STRIP", na=False)].sort_values(
+for _, row in df_qa[df_qa["qa_issues"].str.contains("NARROW_STRIP", na=False)].sort_values(
         "max_width_m", ascending=True).iterrows():
     s_id = row["source_record_id"]
-    r = rec_map[s_id]
+    r = rec_map.get(s_id)
+    if not r:
+        continue
     extreme_ids.add(s_id)
     other = row["qa_issues"].replace("NARROW_STRIP", "").replace(";", "").replace(" ", "")
     extra = f"；同时伴有: {other}" if other else ""
@@ -164,7 +185,6 @@ for _, row in bj_qa[bj_qa["qa_issues"].str.contains("NARROW_STRIP", na=False)].s
         "entities": [{"id": s_id, "name": r.name_raw, "address": r.address_raw,
                       "coords": norm_coords[s_id], "qa_score": qa_scores[s_id], "color": "#d946ef"}],
     })
-
 
 # =====================================================================
 # Generate geodata.js (simplified GeoJSON for all entity IDs in cases)
@@ -218,7 +238,7 @@ html = f"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>围栏治理抽检器 (全量数据·北京)</title>
+<title>空间决策智能引擎 · 围栏治理与工单抽检器 (全量多城市)</title>
 <script type="text/javascript">
   window._TMapSecurityConfig = {{
     serviceHost: 'http://127.0.0.1:__WB_HTTP_PORT__/_TMapService/_wbt/__WB_TMAP_SECRET__',
@@ -226,23 +246,32 @@ html = f"""<!DOCTYPE html>
 </script>
 <script src="https://map.qq.com/api/gljs?v=1.exp" async></script>
 <style>
-:root {{ --bg:#f8fafc; --sidebar:#fff; --text:#0f172a; --sub:#64748b; --primary:#2563eb; --border:#e2e8f0; }}
+:root {{ --bg:#f8fafc; --sidebar:#fff; --text:#0f172a; --sub:#64748b; --primary:#2563eb; --border:#e2e8f0; --tier1:#dc2626; --tier2:#2563eb; --tier3:#64748b; }}
 * {{ box-sizing:border-box; margin:0; padding:0; }}
 body {{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }}
-header {{ background:#fff; border-bottom:1px solid var(--border); padding:10px 20px; z-index:10; flex-wrap:wrap; gap:6px; }}
-header h1 {{ font-size:16px; font-weight:700; margin-bottom:6px; }}
+header {{ background:#fff; border-bottom:1px solid var(--border); padding:10px 20px; z-index:10; display:flex; flex-direction:column; gap:6px; }}
+.header-top {{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }}
+header h1 {{ font-size:16px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px; }}
+.city-selector {{ display:flex; gap:4px; align-items:center; }}
+.city-btn {{ padding:4px 10px; border-radius:6px; font-size:12px; border:1px solid var(--border); background:#fff; cursor:pointer; font-weight:500; }}
+.city-btn.active {{ background:#0f172a; color:#fff; border-color:#0f172a; }}
+.export-btn {{ padding:4px 10px; border-radius:6px; font-size:12px; background:#10b981; color:#fff; border:none; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px; }}
+.export-btn:hover {{ background:#059669; }}
 .tab-bar {{ display:flex; gap:4px; flex-wrap:wrap; }}
-.tab-btn {{ padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; border:1px solid var(--border); background:#f1f5f9; color:#475569; cursor:pointer; white-space:nowrap; }}
+.tab-btn {{ padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; border:1px solid var(--border); background:#f1f5f9; color:#475569; cursor:pointer; white-space:nowrap; }}
 .tab-btn.active {{ background:var(--primary); color:#fff; border-color:var(--primary); }}
-.tab-btn .count {{ font-size:10px; opacity:.7; }}
+.tab-btn.tier1 {{ border-color:#fca5a5; color:#b91c1c; background:#fef2f2; }}
+.tab-btn.tier1.active {{ background:#dc2626; color:#fff; border-color:#dc2626; }}
+.tab-btn.tier2 {{ border-color:#bfdbfe; color:#1d4ed8; background:#eff6ff; }}
+.tab-btn.tier2.active {{ background:#2563eb; color:#fff; border-color:#2563eb; }}
+.tab-btn .count {{ font-size:10px; opacity:.75; }}
 .main-container {{ flex:1; display:flex; overflow:hidden; }}
-.sidebar {{ width:380px; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }}
+.sidebar {{ width:390px; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }}
 .sidebar-top {{ border-bottom:1px solid var(--border); background:#f8fafc; }}
 .search-box {{ padding:8px 12px; }}
 .search-box input {{ width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; }}
 .search-box input:focus {{ border-color:var(--primary); box-shadow:0 0 0 2px rgba(37,99,235,.1); }}
 .case-count-bar {{ padding:4px 12px; font-size:11px; color:var(--sub); border-bottom:1px solid var(--border); background:#fff; display:flex; justify-content:space-between; align-items:center; }}
-.hint {{ padding:8px 12px; font-size:11px; color:var(--sub); border-bottom:1px solid var(--border); background:#f8fafc; }}
 .case-list {{ flex:1; overflow-y:auto; padding:8px; }}
 .case-card {{ background:#fff; border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; cursor:pointer; transition:border-color .12s; }}
 .case-card:hover {{ border-color:var(--primary); }}
@@ -250,11 +279,14 @@ header h1 {{ font-size:16px; font-weight:700; margin-bottom:6px; }}
 .case-card h3 {{ font-size:12px; font-weight:600; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .case-card .meta {{ font-size:11px; color:var(--sub); display:flex; gap:6px; margin-bottom:4px; flex-wrap:wrap; }}
 .badge-type {{ display:inline-block; font-size:10px; padding:1px 5px; border-radius:3px; font-weight:600; background:#dbeafe; color:#1d4ed8; }}
+.badge-tier1 {{ background:#fee2e2; color:#b91c1c; }}
+.badge-tier2 {{ background:#dbeafe; color:#1d4ed8; }}
+.badge-tier3 {{ background:#f1f5f9; color:#475569; }}
 .load-more-btn {{ display:block; width:100%; padding:8px; border:1px dashed var(--border); border-radius:6px; background:transparent; color:var(--sub); font-size:12px; cursor:pointer; margin-top:4px; }}
 .load-more-btn:hover {{ background:#f1f5f9; border-color:var(--primary); color:var(--primary); }}
 .map-container {{ flex:1; position:relative; min-height:0; }}
 #map {{ width:100%; height:100%; position:absolute; top:0; left:0; }}
-.detail-panel {{ position:absolute; bottom:16px; right:16px; width:340px; max-height:40%; overflow-y:auto; background:rgba(255,255,255,.95); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:10px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,.1); z-index:1000; font-size:12px; }}
+.detail-panel {{ position:absolute; bottom:16px; right:16px; width:360px; max-height:45%; overflow-y:auto; background:rgba(255,255,255,.96); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:10px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,.1); z-index:1000; font-size:12px; }}
 .detail-panel h4 {{ font-size:13px; font-weight:600; margin-bottom:6px; }}
 .legend-item {{ display:flex; align-items:center; margin-bottom:4px; font-size:11px; }}
 .color-dot {{ width:10px; height:10px; border-radius:3px; margin-right:6px; display:inline-block; flex-shrink:0; }}
@@ -262,35 +294,47 @@ header h1 {{ font-size:16px; font-weight:700; margin-bottom:6px; }}
 </head>
 <body>
 <header>
-  <h1>围栏治理抽检器 · 全量数据 · 🏛️ 北京城区</h1>
+  <div class="header-top">
+    <h1>🌐 空间决策智能引擎 · 围栏治理与工单抽检器</h1>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <div class="city-selector">
+        <span style="font-size:12px; color:var(--sub);">城市:</span>
+        <button class="city-btn active" onclick="switchCity('ALL', this)">全部城市</button>
+        <button class="city-btn" onclick="switchCity('北京', this)">北京</button>
+        <button class="city-btn" onclick="switchCity('石家庄', this)">石家庄</button>
+      </div>
+      <button class="export-btn" onclick="exportCurrentWorkOrders()">📥 导出当前工单 CSV</button>
+    </div>
+  </div>
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchCategory('REVIEW_QUEUE', this)">1.存疑待确认 <span class="count">({counts["REVIEW_QUEUE"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('SIBLING', this)">2.同名不同店 <span class="count">({counts["SIBLING"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('COMPONENT_GATE', this)">3.关键词不匹配 <span class="count">({counts["COMPONENT_GATE"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('MERGE_ERROR', this)">4.围栏互相覆盖 <span class="count">({counts["MERGE_ERROR"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('ZERO_POINTS', this)">5.坐标缺失为零 <span class="count">({counts["ZERO_POINTS"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('TOPOLOGY_HEALED', this)">6.边界打结已修复 <span class="count">({counts["TOPOLOGY_HEALED"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('RERANK_DOWN', this)">7.名字差异较大 <span class="count">({counts["RERANK_DOWN"]})</span></button>
-    <button class="tab-btn" onclick="switchCategory('RERANK_ALIAS', this)">8.可能是同一店 <span class="count">({counts["RERANK_ALIAS"]})</span></button>
+    <button class="tab-btn tier1 active" onclick="switchCategory('TIER_1_CRITICAL', this)">🚨 1.高危待复核 <span class="count">({counts.get("TIER_1_CRITICAL", 0)})</span></button>
+    <button class="tab-btn tier2" onclick="switchCategory('TIER_2_STANDARD', this)">📋 2.常规待复核 <span class="count">({counts.get("TIER_2_STANDARD", 0)})</span></button>
+    <button class="tab-btn" onclick="switchCategory('REVIEW_QUEUE', this)">3.存疑关联对 <span class="count">({counts["REVIEW_QUEUE"]})</span></button>
+    <button class="tab-btn" onclick="switchCategory('SIBLING', this)">4.同名不同店 <span class="count">({counts["SIBLING"]})</span></button>
+    <button class="tab-btn" onclick="switchCategory('COMPONENT_GATE', this)">5.组件硬门拦截 <span class="count">({counts["COMPONENT_GATE"]})</span></button>
+    <button class="tab-btn" onclick="switchCategory('MERGE_ERROR', this)">6.空间互相覆盖 <span class="count">({counts["MERGE_ERROR"]})</span></button>
+    <button class="tab-btn" onclick="switchCategory('ZERO_POINTS', this)">7.零坐标重构 <span class="count">({counts["ZERO_POINTS"]})</span></button>
+    <button class="tab-btn" onclick="switchCategory('TOPOLOGY_HEALED', this)">8.拓扑自愈 <span class="count">({counts["TOPOLOGY_HEALED"]})</span></button>
     <button class="tab-btn" onclick="switchCategory('EXTREME_LONG', this)">9.窄条退化围栏 <span class="count">({counts["EXTREME_LONG"]})</span></button>
+    <button class="tab-btn" onclick="switchCategory('TIER_3_FILTERED', this)">🗄️ 10.已降级归档 <span class="count">({counts.get("TIER_3_FILTERED", 0)})</span></button>
   </div>
 </header>
 <div class="main-container">
   <div class="sidebar">
     <div class="sidebar-top">
-      <div class="search-box"><input type="text" id="caseSearch" placeholder="🔍 搜索名称..." oninput="onSearchInput()"></div>
+      <div class="search-box"><input type="text" id="caseSearch" placeholder="🔍 搜索名称/ID/地址/原因..." oninput="onSearchInput()"></div>
       <div class="case-count-bar">
         <span id="caseCount">共 0 条</span>
-        <span style="font-size:10px;color:#94a3b8;">每次显示 50 条，滚动到底部加载更多</span>
+        <span style="font-size:10px;color:#94a3b8;">每次显示 50 条，滚动加载</span>
       </div>
     </div>
     <div class="case-list" id="caseList"></div>
   </div>
   <div class="map-container">
     <div id="map"></div>
-    <div id="mapLoadHint" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:#b25e09;z-index:998;display:none;box-shadow:0 2px 8px rgba(0,0,0,.1);">⚠️ 腾讯地图 SDK 加载中或失败(需联网)，案例列表不受影响</div>
+    <div id="mapLoadHint" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:#b25e09;z-index:998;display:none;box-shadow:0 2px 8px rgba(0,0,0,.1);">⚠️ 腾讯地图 SDK 加载中或离线，案例列表与属性不受影响</div>
     <div class="detail-panel" id="detailPanel">
-      <h4>判定依据</h4>
+      <h4>判定依据与行动建议</h4>
       <p id="explainText" style="color:#475569; margin-bottom:8px; line-height:1.4;">请从左侧选择一个案例。</p>
       <div id="legendContainer"></div>
     </div>
@@ -301,7 +345,8 @@ header h1 {{ font-size:16px; font-weight:700; margin-bottom:6px; }}
 <script>
 const CASES_DATA = window.CASES_DATA || {{}};
 const GEOJSON_DATA = window.GEOJSON_DATA || {{}};
-let currentCategory = 'REVIEW_QUEUE';
+let currentCategory = 'TIER_1_CRITICAL';
+let selectedCity = 'ALL';
 let map = null;
 let searchQuery = '';
 let visibleCount = 50;
@@ -337,15 +382,32 @@ function bootMap(tries) {{
 }}
 function getFilteredCases() {{
   let items = CASES_DATA[currentCategory] || [];
+  if (selectedCity !== 'ALL') {{
+    items = items.filter(c => c.city && c.city.includes(selectedCity));
+  }}
   if (searchQuery) {{
     const q = searchQuery.toLowerCase();
     items = items.filter(c =>
       (c.title && c.title.toLowerCase().includes(q)) ||
       (c.explain && c.explain.toLowerCase().includes(q)) ||
-      (c.entities && c.entities.some(e => e.name && e.name.toLowerCase().includes(q)))
+      (c.entities && c.entities.some(e => (e.name && e.name.toLowerCase().includes(q)) || (e.id && String(e.id).includes(q))))
     );
   }}
   return items;
+}}
+function switchCity(city, btn) {{
+  selectedCity = city;
+  visibleCount = PAGE_SIZE;
+  document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderCaseList();
+  const items = getFilteredCases();
+  if (items.length > 0) selectCase(0);
+  else {{
+    clearLayers();
+    document.getElementById('explainText').innerText = '当前筛选条件下暂无案例。';
+    document.getElementById('legendContainer').innerHTML = '';
+  }}
 }}
 function switchCategory(cat, btn) {{
   currentCategory = cat;
@@ -392,14 +454,20 @@ function renderCaseList() {{
   let html = '';
   for (let i = 0; i < shown.length; i++) {{
     const c = shown[i];
-    const distStr = (c.distance !== null && c.distance !== undefined && c.distance > 0) ? '<span>距离:' + c.distance.toFixed(0) + 'm</span>' : '';
-    const iouStr = (c.iou !== null && c.iou !== undefined && c.iou > 0) ? '<span>IoU:' + c.iou.toFixed(2) + '</span>' : '';
-    const ceStr = (c.cross_encoder_score && c.cross_encoder_score > 0) ? '<span>CE:<b>' + c.cross_encoder_score.toFixed(3) + '</b></span>' : '';
+    const distStr = (c.distance !== null && c.distance !== undefined && c.distance > 0) ? '<span>距离:' + Number(c.distance).toFixed(0) + 'm</span>' : '';
+    const iouStr = (c.iou !== null && c.iou !== undefined && c.iou > 0) ? '<span>IoU:' + Number(c.iou).toFixed(2) + '</span>' : '';
+    const ceStr = (c.cross_encoder_score && c.cross_encoder_score > 0) ? '<span>CE:<b>' + Number(c.cross_encoder_score).toFixed(3) + '</b></span>' : '';
     const confStr = (c.confidence !== null && c.confidence !== undefined) ? c.confidence : '—';
     const confLabel = currentCategory === 'EXTREME_LONG' ? '最宽处:<b>' + confStr + '</b>m' : '置信度:<b>' + confStr + '</b>';
+    
+    let badgeClass = 'badge-type';
+    if (c.relation_type === 'POSSIBLE_MERGE_ERROR' || (c.iou && c.iou >= 0.15)) badgeClass += ' badge-tier1';
+    else if (c.relation_type === 'RELATED_ENTITY') badgeClass += ' badge-tier2';
+    else badgeClass += ' badge-tier3';
+
     html += '<div class="case-card' + (i === 0 ? ' active' : '') + '" onclick="selectCase(' + i + ')">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">';
-    html += '<span class="badge-type">' + (c.relation_type||'') + '</span>';
+    html += '<span class="' + badgeClass + '">' + (c.relation_type||'') + '</span>';
     html += '<span style="font-size:10px;color:#94a3b8;">' + (c.city||'') + '</span>';
     html += '</div>';
     html += '<h3>' + (c.title||'') + '</h3>';
@@ -479,6 +547,33 @@ function selectCase(idx, skipMapIfDown) {{
     }}
   }} catch(e) {{}}
 }}
+function exportCurrentWorkOrders() {{
+  const items = getFilteredCases();
+  if (!items.length) {{ alert('当前无工单可导出'); return; }}
+  let csv = 'ID_A,Name_A,ID_B,Name_B,City,Relation_Type,IoU,Distance_M,CrossEncoder_Score,Explain\\n';
+  items.forEach(c => {{
+    const ea = (c.entities && c.entities[0]) || {{}};
+    const eb = (c.entities && c.entities[1]) || {{}};
+    const row = [
+      ea.id || '',
+      '"' + (ea.name || '').replace(/"/g, '""') + '"',
+      eb.id || '',
+      '"' + (eb.name || '').replace(/"/g, '""') + '"',
+      '"' + (c.city || '').replace(/"/g, '""') + '"',
+      c.relation_type || '',
+      c.iou || 0,
+      c.distance || 0,
+      c.cross_encoder_score || 0,
+      '"' + (c.explain || '').replace(/"/g, '""') + '"'
+    ];
+    csv += row.join(',') + '\\n';
+  }});
+  const blob = new Blob(["\\ufeff" + csv], {{ type: 'text/csv;charset=utf-8;' }});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'work_orders_' + currentCategory + '_' + selectedCity + '.csv';
+  link.click();
+}}
 window.onload = () => {{
   renderCaseList();
   bootMap(10);
@@ -495,7 +590,6 @@ window.onload = () => {{
 </script>
 </body>
 </html>"""
-
 with open(os.path.join(OUTPUT_DIR, "interactive_inspector.html"), "w", encoding="utf-8") as f:
     f.write(html)
 print("interactive_inspector.html generated successfully.")
