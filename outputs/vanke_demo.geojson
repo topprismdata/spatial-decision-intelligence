@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "entity_id": "ENT_万科星河湾二期",
+        "name": "万科星河湾二期",
+        "category": "RESIDENTIAL_COMMUNITY",
+        "area_m2": 32302.35,
+        "confidence_score": 0.9296,
+        "is_decision_ready": true,
+        "method": "ROAD_ENCLOSED_BLOCK"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.45079520290514,
+              39.9202768734532
+            ],
+            [
+              116.45320479709486,
+              39.92031302978054
+            ],
+            [
+              116.45314455724012,
+              39.9217231265468
+            ],
+            [
+              116.45079520290514,
+              39.9217231265468
+            ],
+            [
+              116.45079520290514,
+              39.9202768734532
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

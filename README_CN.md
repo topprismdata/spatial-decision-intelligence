@@ -62,10 +62,48 @@ Spatial Decision Intelligence (平台愿景)
 
 这意味着本项目解决的不是 *“围栏应该怎么画”*，而是：  
 **“决策引擎看到的空间世界是否真实、统一、无冲突，并且足以支持下一步决策？”**
+---
+
+## 二、 核心架构：4-Agent 空间智能体平台 (Spatial Intelligence Agent Platform)
+
+小区围栏的自动生成，本质不是让大模型直接画 Polygon，而是**空间实体理解与多源空间证据的联合推理**。系统由 4 个专业 Agent 协作完成从语义到可信几何的端到端生成：
+
+```text
+                 [ 业务输入: 小区名称 + 地址描述 + 种子坐标点 ]
+                                      │
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│              Spatial Intelligence Agent Platform (4-Agent 协作层)        │
+│                                                                          │
+│  🏢 1. 小区识别 Agent (Entity Resolution Agent)                         │
+│     · 语义解析 (BASE/COURT/PHASE/SUBAREA 组件硬门)                      │
+│     · 实体尺度判定: 号院级 (~2k m²) vs 小区级 (~30k m²) vs 大盘 (~100k m²)│
+│                                      │
+│                                      ▼
+│  🗺️ 2. 边界推理 Agent (Boundary Reasoning Agent)                         │
+│     · 空间上下文感知: 动态推算搜索包络 (BBox)、期望半径与自适应 Zoom       │
+│     · 导出空间边界约束数据包 (BoundaryConstraints)                       │
+│                                      │
+│                                      ▼
+│  📐 3. 几何生成 Agent (Geometry Generation Agent & Candidate Fusion)     │
+│     · 三路候选生成: [路网街区切块] + [建筑足迹凹包] + [面积正交包络]      │
+│     · 空间推理评分模型: 点包含度 + 面积对齐度 + 道路封闭度 + 紧凑度加权    │
+│     · 确定性几何合成: 选出最优物理多边形 (Synthesized Polygon)           │
+│                                      │
+│                                      ▼
+│  🛡️ 4. 质量审核 Agent (Geometry QA Agent)                               │
+│     · 空间体检与自愈: 自相交拓扑闭合 (make_valid)、MIC 工业级窄条检测    │
+│     · 决策就绪判决 (Decision-Readiness Gate): 严重畸形自动降级为路线 A     │
+└─────────────────────────────────────┬────────────────────────────────────┘
+                                      │
+                                      ▼
+                      [ 可信空间事实 Trusted Spatial State ]
+                      (发布给 downstream solvers: 辖区/排程/覆盖/调度)
+```
 
 ---
 
-## 二、 它不是什么（What It Is NOT）
+## 三、 它不是什么（What It Is NOT）
 
 为建立严谨的工程与学术边界，明确本项目**不是**：
 
@@ -76,7 +114,7 @@ Spatial Decision Intelligence (平台愿景)
 
 ---
 
-## 三、 决策就绪契约（Decision-Readiness Contract）
+## 四、 决策就绪契约（Decision-Readiness Contract）
 
 下游决策引擎消费空间数据前，必须满足以下六维契约：
 
@@ -91,7 +129,7 @@ Spatial Decision Intelligence (平台愿景)
 
 ---
 
-## 四、 诊断推理与证据链闭环
+## 五、 诊断推理与证据链闭环
 
 引擎输出严格遵循 **Finding $\rightarrow$ Evidence $\rightarrow$ Impact $\rightarrow$ Recommended Review $\rightarrow$ Disposition** 标准：
 
@@ -110,7 +148,7 @@ Disposition (人工处置与回流)
 
 ---
 
-## 五、 真实证据（9,039 条真实围栏验证）
+## 六、 真实证据（9,039 条真实围栏验证）
 
 在 9,039 条真实业务围栏（北京 7,431 + 石家庄 1,608）上完成全量实证：
 
@@ -129,8 +167,7 @@ Disposition (人工处置与回流)
 
 ---
 
-## 六、 快速开始（Quick Start）
-
+## 七、 快速开始（Quick Start）
 本项目支持干净机器开箱即用，无需配置外部私有数据：
 
 ### 1. 安装环境
@@ -142,12 +179,19 @@ cd spatial-decision-intelligence
 # 创建 Python 3.10 虚拟环境
 python3 -m venv .venv
 source .venv/bin/activate
+### 2. 运行 4-Agent 围栏自绘与空间推理
 
-# 安装依赖
-pip install -e .
+```bash
+# 给定小区名称、地址和种子坐标，执行 4-Agent 推理并生成可信 GeoJSON
+spatial-di generate "万科星河湾二期" \
+  --address "朝阳北路88号" \
+  --lng 116.452 \
+  --lat 39.921 \
+  --area 32000 \
+  --output-geojson outputs/vanke_demo.geojson
 ```
 
-### 2. 运行合成基准诊断
+### 3. 运行合成基准诊断
 
 ```bash
 # 使用内置 30 条合成典型退化围栏快速体检
@@ -157,15 +201,12 @@ spatial-di diagnose examples/sample_fences.geojson
 spatial-di diagnose /path/to/your/fences.xlsx --output-dir outputs/
 ```
 
-### 3. 启动多城市交互式抽检器
+### 4. 启动多城市交互式抽检器
 
 ```bash
 # 启动本地案例抽检器（支持北京/石家庄/工单导出）
 open outputs/interactive_inspector.html
 ```
-
----
-
 ## 七、 许可证与代码结构
 
 * **代码许可证**：[MIT License](LICENSE)

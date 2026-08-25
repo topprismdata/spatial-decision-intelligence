@@ -80,6 +80,56 @@ def diagnose_cmd(args):
         logger.info(f"  {k}: {v}")
     return 0
 
+def generate_cmd(args):
+    from src.agents import SpatialIntelligencePlatform
+    import json
+    from shapely import wkt
+    from shapely.geometry import mapping
+
+    platform = SpatialIntelligencePlatform()
+    logger.info(f"=== [spatial-di] 4-Agent Generation Pipeline for: '{args.name}' ===")
+    
+    res = platform.generate_single_fence(
+        name=args.name,
+        address=args.address or "",
+        lng=args.lng,
+        lat=args.lat,
+        prior_area_m2=args.area
+    )
+
+    logger.info("\n--- 4-Agent Execution Trace ---")
+    for step in res.execution_trace:
+        logger.info(f"  {step}")
+
+    logger.info("\n--- Synthesized Spatial Fact ---")
+    logger.info(f"  Entity:       {res.qa_audit.entity.canonical_name} ({res.qa_audit.entity.category.value})")
+    logger.info(f"  Chosen Method:{res.generation_result.method} (Score: {res.generation_result.confidence_score:.3f})")
+    logger.info(f"  EffectiveArea:{res.generation_result.chosen_hypothesis.area_m2:.1f} m²")
+    logger.info(f"  DecisionReady:{res.is_decision_ready}")
+    logger.info(f"  Geometry WKT: {res.qa_audit.geometry_observation.geometry_wkt[:90]}...")
+
+    if args.output_geojson:
+        geom_obj = wkt.loads(res.qa_audit.geometry_observation.geometry_wkt)
+        feature = {
+            "type": "Feature",
+            "properties": {
+                "entity_id": res.qa_audit.entity.entity_id,
+                "name": res.qa_audit.entity.canonical_name,
+                "category": res.qa_audit.entity.category.value,
+                "area_m2": res.generation_result.chosen_hypothesis.area_m2,
+                "confidence_score": res.generation_result.confidence_score,
+                "is_decision_ready": res.is_decision_ready,
+                "method": res.generation_result.method
+            },
+            "geometry": mapping(geom_obj)
+        }
+        fc = {"type": "FeatureCollection", "features": [feature]}
+        with open(args.output_geojson, "w", encoding="utf-8") as f:
+            json.dump(fc, f, ensure_ascii=False, indent=2)
+        logger.info(f"\n[spatial-di] Exported synthesized GeoJSON -> {args.output_geojson}")
+
+    return 0
+
 
 def inspect_cmd(args):
     out_dir = args.output_dir or os.path.join(PROJECT_ROOT, "outputs")
@@ -97,7 +147,6 @@ def inspect_cmd(args):
         logger.info("\n[spatial-di] Inspector server stopped.")
     return 0
 
-
 def main():
     parser = argparse.ArgumentParser(
         prog="spatial-di",
@@ -111,6 +160,15 @@ def main():
     diag_p.add_argument("--output-dir", "-o", default=None, help="Output directory for reports and work orders")
     diag_p.add_argument("--sample", type=int, default=0, help="Sample N records for quick diagnostic test")
 
+    # generate (4-Agent Pipeline)
+    gen_p = subparsers.add_parser("generate", help="Generate and govern a community fence using 4-Agent spatial reasoning")
+    gen_p.add_argument("name", help="Name of community/estate/courtyard (e.g. '万科星河湾一期')")
+    gen_p.add_argument("--address", "-a", default="", help="Street address hint")
+    gen_p.add_argument("--lng", type=float, default=116.450, help="Seed longitude (default: 116.450)")
+    gen_p.add_argument("--lat", type=float, default=39.920, help="Seed latitude (default: 39.920)")
+    gen_p.add_argument("--area", type=float, default=None, help="Prior target area in m² (optional)")
+    gen_p.add_argument("--output-geojson", "-o", default=None, help="Path to save synthesized GeoJSON")
+
     # inspect
     insp_p = subparsers.add_parser("inspect", help="Launch interactive multi-city case inspector")
     insp_p.add_argument("--output-dir", "-o", default=None, help="Outputs directory")
@@ -119,12 +177,13 @@ def main():
     args = parser.parse_args()
     if args.subcommand == "diagnose":
         return diagnose_cmd(args)
+    elif args.subcommand == "generate":
+        return generate_cmd(args)
     elif args.subcommand == "inspect":
         return inspect_cmd(args)
     else:
         parser.print_help()
         return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

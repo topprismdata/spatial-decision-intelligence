@@ -2,14 +2,14 @@
 
 **The trusted spatial world model integrity layer and decision readiness gate for enterprise decision engines.**
 
-`TRUSTED WORLD STATE` · `DECISION READINESS` · `EXPLAINABLE DIAGNOSIS` · `HUMAN-GOVERNED` · `MIT`
+`TRUSTED WORLD STATE` · `DECISION READINESS` · `4-AGENT ARCHITECTURE` · `EXPLAINABLE DIAGNOSIS` · `HUMAN-GOVERNED` · `MIT`
 
 > **Core Question:** Before optimizing territories, visit plans, store coverage, or delivery networks, the system answers a fundamental prerequisite:  
 > **Is the spatial world represented by the data trustworthy enough to make an automated decision?**
 
 Spatial Decision Intelligence transforms inconsistent coordinates, broken geofences, and ambiguous spatial entities into verified, traceable **spatial facts (Trusted Spatial State)** that downstream decision solvers can safely consume without inheriting silent spatial corruption.
 
-The current production-validated scenario is **Geofence Integrity**: 9,039 operational fences run end-to-end; see [Empirical Evidence](#empirical-evidence-9039-operational-fences-validated).
+The current production-validated scenario is **Geofence Integrity**: 9,039 operational fences run end-to-end; see [Empirical Evidence](#6-empirical-evidence-9039-operational-fences-validated).
 
 ---
 
@@ -65,7 +65,46 @@ This means the engine does not answer *"How should geofences be drawn?"*, but ra
 
 ---
 
-## 2. What It Is NOT
+## 2. Core Architecture: 4-Agent Spatial Intelligence Platform
+
+Community fence generation is not about asking an LLM to hallucinate a polygon—it is an **entity understanding and spatial evidence reasoning process**. The system orchestrates 4 specialized agents:
+
+```text
+               [ Input: Community Name + Address + Seed Point ]
+                                      │
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│              Spatial Intelligence Agent Platform (4-Agent Layer)         │
+│                                                                          │
+│  🏢 Agent 1: Entity Resolution Agent                                     │
+│     · Semantic component gates (Base, Court, Phase, Subarea)             │
+│     · Entity scale inference (Courtyard ~2k m² vs Community ~30k m²)     │
+│                                      │
+│                                      ▼
+│  🗺️ Agent 2: Boundary Reasoning Agent                                     │
+│     · Spatial context: Search bbox, target area prior, adaptive zoom     │
+│     · Emits formal BoundaryConstraints packet                            │
+│                                      │
+│                                      ▼
+│  📐 Agent 3: Geometry Generation Agent & Candidate Fusion                │
+│     · Multi-hypothesis: [Road Block] + [Building Hull] + [Area Buffer]   │
+│     · Spatial Reasoning Scorer: Point, area alignment, compactness       │
+│     · Synthesizes optimal physical polygon boundary                      │
+│                                      │
+│                                      ▼
+│  🛡️ Agent 4: Geometry QA Agent                                           │
+│     · Health checks: Self-intersection healing, MIC narrow strips        │
+│     · Decision Readiness Gate: Auto-degrades to Route A on severe defect │
+└─────────────────────────────────────┬────────────────────────────────────┘
+                                      │
+                                      ▼
+                      [ Trusted Spatial State ]
+                      (Published to territory, visit, and dispatch solvers)
+```
+
+---
+
+## 3. What It Is NOT
 
 To establish rigorous engineering and academic boundaries, this engine explicitly is:
 
@@ -76,7 +115,7 @@ To establish rigorous engineering and academic boundaries, this engine explicitl
 
 ---
 
-## 3. Decision-Readiness Contract
+## 4. Decision-Readiness Contract
 
 Before spatial facts can be consumed by downstream solvers, they must satisfy a 6-dimensional readiness contract:
 
@@ -91,7 +130,7 @@ Before spatial facts can be consumed by downstream solvers, they must satisfy a 
 
 ---
 
-## 4. Diagnostic Reasoning: From Finding to Disposition
+## 5. Diagnostic Reasoning: From Finding to Disposition
 
 Diagnostic outputs follow a strict structural pipeline:  
 **Finding $\rightarrow$ Evidence $\rightarrow$ Impact $\rightarrow$ Recommended Review $\rightarrow$ Disposition**
@@ -111,7 +150,7 @@ Disposition
 
 ---
 
-## 5. Empirical Evidence (9,039 Operational Fences Validated)
+## 6. Empirical Evidence (9,039 Operational Fences Validated)
 
 Validated across 9,039 operational enterprise geofences (Beijing 7,431 + Shijiazhuang 1,608):
 
@@ -130,7 +169,7 @@ Validated across 9,039 operational enterprise geofences (Beijing 7,431 + Shijiaz
 
 ---
 
-## 6. Quick Start
+## 7. Quick Start
 
 Run on a clean machine without private dependencies:
 
@@ -146,7 +185,19 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### 2. Run Synthetic Benchmark Diagnosis
+### 2. Run 4-Agent Spatial Reasoning & Fence Generation
+
+```bash
+# Execute 4-Agent reasoning pipeline for a community brief
+spatial-di generate "万科星河湾二期" \
+  --address "朝阳北路88号" \
+  --lng 116.452 \
+  --lat 39.921 \
+  --area 32000 \
+  --output-geojson outputs/vanke_demo.geojson
+```
+
+### 3. Run Synthetic Benchmark Diagnosis
 
 ```bash
 # Diagnose bundled 30-fence synthetic benchmark capturing real degradation modes
@@ -156,7 +207,7 @@ spatial-di diagnose examples/sample_fences.geojson
 spatial-di diagnose /path/to/your/fences.xlsx --output-dir outputs/
 ```
 
-### 3. Launch Multi-City Case Inspector
+### 4. Launch Multi-City Case Inspector
 
 ```bash
 # Open interactive case inspector with 3-tier filtering & CSV export
@@ -165,10 +216,12 @@ open outputs/interactive_inspector.html
 
 ---
 
-## 7. License & Project Structure
+## 8. License & Project Structure
 
 * **License**: [MIT License](LICENSE)
 * **Key Components**:
+  * `src/agents/`: 4-Agent Layer (`EntityResolution`, `BoundaryReasoning`, `GeometryGeneration`, `GeometryQA`, `SpatialIntelligencePlatform`);
+  * `src/generation/candidate_fusion.py`: Multi-hypothesis candidate generation & spatial reasoning scorer;
   * `src/domain/world_model.py`: Formal Spatial World Model contracts (`SpatialEntity`, `QualityFinding`, `DecisionImpact`, `TrustedSpatialState`);
   * `src/adapters/decision_adapters.py`: Fail-Closed adapters for downstream solvers (`TerritoryPlanning`, `VisitScheduling`, `CoverageAnalysis`);
   * `src/geometry/ai_fence_guard.py`: Quality gate & graceful fallback guard for AI-generated geometries;
