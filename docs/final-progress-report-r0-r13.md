@@ -207,4 +207,35 @@ R7  Failure Analysis
 
 **R0–R13 全部闭环。** 项目从基线冻结、领域契约设计、Metric CRS 重构、30-Case 基准建立，到故障驱动迭代消解 24 个可行动失败域，已完成一个完整的证据驱动架构决策循环。剩余 5 个 Observation Ceiling 为开放数据本身能力边界，不可通过算法改进解决。
 
-**下一步建议：** 架构稳定阶段 — 将 R8–R13 验证通过的升级集成到主管线，准备面向外部 case 的泛化验证。
+---
+
+## 十一、全量实测补充 (2026-08-27)
+
+架构验证之后，项目在北京全量数据上完成了生产级实测：
+
+| 实测项 | 结果 |
+|:---|:---|
+| Geofabrik OSM 住宅用地总量 | 11,227 个多边形 |
+| 其中有名称 | 6,308 (56%) |
+| 其中无名称 | 4,919 (44%) — 大部分为农地/荒地误标 |
+| 4-Provider Pipeline 全量运行 | 874s (12.8 cases/s 预热后)，0 错误 |
+| 高德 POI 补名（629 网格 × 分页查询） | 1,691 次 API 调用，891s，成功补名 **285 个** |
+| 最终可信小区围栏 | **~6,600 个** |
+| 产出物 | `outputs/beijing_batch/beijing_residential_named.geojson` + HTML 地图 |
+
+**关键发现：** RoadBlock / BuildingCluster 依赖 Overpass API 在线查询，批量场景下需替换为本地预载 Geofabrik 数据（R14 工程化事项）。Web 端高德（PC + 移动）在未登录态下均被行为级风控拦截（RGV587 / bx 签名），polygon 边界无法通过网页自动化获取，官方 API 仅提供点位 —— 这从工程上印证了 Open-Data-Only 路线的正确性。
+
+## 十二、下一步：R14 提案
+
+文献普查（8 维度，详见 `r14-lit-review-optimization-proposal.md`）产出 Top-5 优化清单：
+
+| # | 改进 | 收益 | 复杂度 |
+|:-:|:---|:---|:-:|
+| P1 | 凸包 → Alpha shape (Delaunay concave hull) | L 形小区 IoU 上限 0.65 → 0.85 | M |
+| P2 | 高德覆盖基准 Gate：无名 + 无 Amap POI ⇒ REJECTED | 消除 ~4,900 农地误标 | S |
+| P3 | 启发式排序 → Dempster-Shafer 证据融合 | False Trusted 数学保证 | L |
+| P4 | 共享边修复 → Planar Partition 不变量重建 | watertight 输出 | L |
+| P5 | 层级解析 + Amap gazetteer 包含校验 | 同名 Phase 跨 estate 歧义消解 | S |
+**下一步建议：** 进入 R14 — 按上表顺序实施，同步将 Overpass 在线查询替换为本地 Geofabrik 接入，完成批量生产化。
+
+**建议实施顺序：P2 → P5 → P1 → P3 → P4**（前三项完成后，北京全量数据即可达到产品可用形态）。

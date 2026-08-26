@@ -270,6 +270,20 @@ open outputs/interactive_inspector.html
 | R12 | Entity Resolution (hierarchy disambiguation) | ✅ |
 | R13 | Candidate Generation (full data coverage) | ✅ |
 
+### R14 规划（文献驱动优化，已立项）
+
+基于 8 维度学术文献普查的 Top-5 优化清单（详见 [R14 提案](docs/r14-lit-review-optimization-proposal.md)）：
+
+| # | 改进 | 收益 | 复杂度 |
+|:-:|:---|:---|:-:|
+| P1 | 凸包 → Alpha shape (concave hull) | L 形小区 IoU 上限 0.65 → 0.85 | M |
+| P2 | 高德覆盖基准 Gate（无名 + 无 POI ⇒ REJECTED） | 消除 ~4,900 农地误标 | S |
+| P3 | 启发式排序 → Dempster-Shafer 证据融合 | False Trusted 数学保证 | L |
+| P4 | 共享边修复 → Planar Partition 重建 | watertight 输出 | L |
+| P5 | 层级解析 + Amap gazetteer 校验 | 同名 Phase 歧义消解 | S |
+
+**全量实测 (2026-08-27)：** 北京 11,227 个 OSM 住宅用地已跑通 4-Provider Pipeline（874s / 0 错误），Amap 补名 +285 个，最终可信围栏 ~6,600 个。
+
 ### 数据源
 
 | 来源 | 用途 | 许可证 |
