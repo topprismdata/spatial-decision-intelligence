@@ -2,6 +2,9 @@
 Agent 1: Entity Resolution Agent (小区识别智能体).
 Parses unstructured community names/addresses into typed components,
 classifies entity scale levels, and establishes canonical identity.
+
+REFACTORED (M1): now delegates to component_matcher and pair_features
+for name parsing and entity classification, eliminating duplicate logic.
 """
 
 from __future__ import annotations
@@ -11,6 +14,11 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
 from src.domain.world_model import EntityCategory
+
+# Delegate to the validated component infrastructure
+from src.entity_resolution.component_matcher import extract_components
+from src.entity_resolution.pair_features import parse_chinese_community_semantics
+from src.domain.models import SourceRecord, EntityType
 
 
 @dataclass
@@ -29,12 +37,24 @@ class ResolvedEntityContext:
     confidence: float = 1.0
 
 
-class EntityResolutionAgent:
-    """Understands spatial entity semantics before any geometry is constructed."""
+# Mapping from v1 EntityType to v2 EntityCategory (used by this agent)
+_ENTITY_TYPE_TO_CATEGORY = {
+    EntityType.RESIDENTIAL_COMMUNITY: EntityCategory.RESIDENTIAL_COMMUNITY,
+    EntityType.RESIDENTIAL_COURTYARD: EntityCategory.RESIDENTIAL_COURTYARD,
+    EntityType.RESIDENTIAL_DORMITORY: EntityCategory.RESIDENTIAL_DORMITORY,
+    EntityType.MIXED_COMMERCIAL_RESIDENTIAL: EntityCategory.MIXED_COMMERCIAL_RESIDENTIAL,
+    EntityType.NON_RESIDENTIAL_COMMERCIAL: EntityCategory.COMMERCIAL_STORE,
+    EntityType.NON_RESIDENTIAL_FACILITY: EntityCategory.FACILITY,
+}
 
-    PHASE_PATTERN = re.compile(r"([一二三四五六七八九十\d]+期|Phase\s*\d+)", re.IGNORECASE)
-    SUBAREA_PATTERN = re.compile(r"([东南西北中ABCDEF]\s*区|[甲乙丙丁]\s*区)")
-    COURTYARD_PATTERN = re.compile(r"([甲乙丙丁\d]+号院|[甲乙丙丁\d]+大院)")
+
+class EntityResolutionAgent:
+    """Understands spatial entity semantics before any geometry is constructed.
+
+    Uses the validated component_matcher and pair_features infrastructure
+    for name parsing, retaining only scale-level inference as unique logic.
+    """
+
     COMMUNITY_SUFFIXES = ("小区", "花园", "家园", "苑", "湾", "城", "华庭", "景苑", "名邸", "山庄", "世家")
 
     def __init__(self):
@@ -47,61 +67,51 @@ class EntityResolutionAgent:
         city: str = "北京市",
         district: str = ""
     ) -> ResolvedEntityContext:
-        """Parses entity into structured components and scale hints."""
-        name_clean = (name or "").strip()
-        addr_clean = (address or "").strip()
+        """Parses entity into structured components and scale hints.
 
-        # 1. Component Extraction (prioritize name)
-        phase_m = self.PHASE_PATTERN.search(name_clean) or self.PHASE_PATTERN.search(addr_clean)
-        phase_id = phase_m.group(1) if phase_m else None
+        Delegates name parsing to component_matcher.extract_components()
+        and entity type classification to pair_features.parse_chinese_community_semantics().
+        """
+        # Build a lightweight SourceRecord-like dict for parse_chinese_community_semantics
+        # (it expects a SourceRecord but we can construct a minimal one)
+        from types import SimpleNamespace
+        mock_record = SimpleNamespace(
+            name_raw=name,
+            address_raw=address,
+            attributes_raw={"小区建筑类型": "", "产权性质": ""},
+        )
 
-        subarea_m = self.SUBAREA_PATTERN.search(name_clean) or self.SUBAREA_PATTERN.search(addr_clean)
-        subarea_id = subarea_m.group(1) if subarea_m else None
+        # Delegate 1: entity type classification via pair_features
+        semantics = parse_chinese_community_semantics(mock_record)  # type: ignore
+        v1_type = semantics.get("entity_type", EntityType.RESIDENTIAL_COMMUNITY)
+        category = _ENTITY_TYPE_TO_CATEGORY.get(v1_type, EntityCategory.RESIDENTIAL_COMMUNITY)
 
-        courtyard_m = self.COURTYARD_PATTERN.search(name_clean)
-        courtyard_id = courtyard_m.group(1) if courtyard_m else None
+        # Delegate 2: component extraction via component_matcher
+        components = extract_components(name)
+        base_name = components.base_name or semantics.get("base_name", name)
+        phase_id = semantics.get("phase") or next(
+            (d for d in components.discriminators if d in ("phase",)), None
+        )
+        subarea_id = semantics.get("subarea") or next(
+            (d for d in components.discriminators if d in ("subarea",)), None
+        )
+        courtyard_id = semantics.get("court_no") or next(
+            (d for d in components.discriminators if d in ("court",)), None
+        )
 
-        # 2. Extract Base Name
-        base_name = name_clean
-        for pattern in [self.PHASE_PATTERN, self.SUBAREA_PATTERN, self.COURTYARD_PATTERN]:
-            base_name = pattern.sub("", base_name).strip("()（）-—_ ")
+        # Build canonical name
+        canonical = self._build_canonical_name(base_name, phase_id, subarea_id, courtyard_id)
 
-        # 3. Classify Entity Category & Scale Level
-        is_community_name = any(s in name_clean for s in self.COMMUNITY_SUFFIXES)
+        # Scale level inference (unique to this agent — no duplication)
+        scale_level = self._infer_scale_level(base_name, name, category, address)
 
-        if courtyard_id and not is_community_name:
-            category = EntityCategory.RESIDENTIAL_COURTYARD
-            scale_level = "COURTYARD_LEVEL"  # ~1,000 - 5,000 m²
-        elif "广场" in name_clean or "大厦" in name_clean or "公寓" in name_clean:
-            category = EntityCategory.MIXED_COMMERCIAL_RESIDENTIAL
-            scale_level = "COMMUNITY_LEVEL"
-        elif "宿舍" in name_clean or "家属院" in name_clean:
-            category = EntityCategory.RESIDENTIAL_DORMITORY
-            scale_level = "COURTYARD_LEVEL"
-        else:
-            category = EntityCategory.RESIDENTIAL_COMMUNITY
-            scale_level = "COMMUNITY_LEVEL"
-
-        # 4. Canonical Name & Aliases
-        components = [base_name]
-        if courtyard_id:
-            components.append(courtyard_id)
-        if phase_id:
-            components.append(phase_id)
-        if subarea_id:
-            components.append(subarea_id)
-
-        canonical_name = "".join(components)
-        aliases = []
-        if name_clean != canonical_name:
-            aliases.append(name_clean)
-        if addr_clean and addr_clean != name_clean:
-            aliases.append(addr_clean)
+        # Aliases
+        aliases = self._generate_aliases(name, base_name, address)
 
         return ResolvedEntityContext(
-            raw_name=name_clean,
-            raw_address=addr_clean,
-            canonical_name=canonical_name,
+            raw_name=name,
+            raw_address=address,
+            canonical_name=canonical,
             category=category,
             scale_level=scale_level,
             base_name=base_name,
@@ -109,5 +119,63 @@ class EntityResolutionAgent:
             subarea_id=subarea_id,
             courtyard_id=courtyard_id,
             aliases=aliases,
-            confidence=0.95
+            confidence=1.0,
         )
+
+    def _build_canonical_name(
+        self,
+        base_name: str,
+        phase_id: Optional[str],
+        subarea_id: Optional[str],
+        courtyard_id: Optional[str],
+    ) -> str:
+        parts = [base_name]
+        if courtyard_id:
+            parts.append(courtyard_id)
+        if phase_id:
+            parts.append(phase_id)
+        if subarea_id:
+            parts.append(subarea_id)
+        return " ".join(parts)
+
+    def _infer_scale_level(
+        self,
+        base_name: str,
+        raw_name: str,
+        category: EntityCategory,
+        address: str,
+    ) -> str:
+        """Infer entity scale level from name, category, and address cues.
+
+        This is the primary unique logic of this agent — not duplicated
+        in component_matcher or pair_features.
+        """
+        has_large_suffix = any(s in raw_name for s in ("城", "庄", "村", "园", "苑"))
+        is_estate_category = category in (
+            EntityCategory.MIXED_COMMERCIAL_RESIDENTIAL,
+            EntityCategory.RESIDENTIAL_DORMITORY,
+        )
+        has_district = bool(re.search(r"(街道|镇|乡)", address))
+
+        if has_district or is_estate_category:
+            return "LARGE_ESTATE"
+        if has_large_suffix:
+            return "COMMUNITY_LEVEL"
+        return "COURTYARD_LEVEL"
+
+    def _generate_aliases(
+        self, raw_name: str, base_name: str, address: str
+    ) -> List[str]:
+        aliases = []
+        # Common alias: drop the suffix
+        for suffix in self.COMMUNITY_SUFFIXES:
+            if raw_name.endswith(suffix):
+                alias = raw_name[: -len(suffix)]
+                if len(alias) >= 2:
+                    aliases.append(alias)
+        # Address-based alias
+        if address and base_name and base_name in address:
+            addr_part = address.split(base_name)[0].strip()
+            if addr_part:
+                aliases.append(f"{addr_part}{base_name}")
+        return list(dict.fromkeys(aliases))  # deduplicate preserving order

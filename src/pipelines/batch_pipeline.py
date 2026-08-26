@@ -105,7 +105,7 @@ class BatchPipeline:
             records=records,
             norm_geoms=norm_geoms,
             norm_coords=norm_coords,
-            buffer_degrees=0.003
+            buffer_meters=300.0
         )
         print(f"Retrieved {len(candidate_pairs)} candidate pairs for semantic evaluation.")
 

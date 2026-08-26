@@ -21,6 +21,8 @@ if PROJECT_ROOT not in sys.path:
 
 from src.geometry.validation import GeometryQAEngine
 from src.domain.models import QAResult
+from src.coordinate.metric_service import MetricGeometryService
+_metric_service = MetricGeometryService()
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +99,7 @@ class AIFenceGuard:
             poly_obj = wkt.loads(verified_wkt)
             if not poly_obj.contains(poi_pt):
                 # distance in meters approx
-                dist_deg = poly_obj.distance(poi_pt)
-                dist_m = dist_deg * 111320.0
+                dist_m = _metric_service.distance_m(poly_obj.wkt, f'POINT({poi_pt.x} {poi_pt.y})')
                 if dist_m > self.max_poi_distance_m:
                     reasons.append(f"AI_POI_DISCONNECTED({dist_m:.0f}m)")
         except Exception:

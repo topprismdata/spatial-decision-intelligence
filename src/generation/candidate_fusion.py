@@ -17,6 +17,7 @@ from shapely.ops import unary_union
 
 from src.agents.entity_resolution_agent import ResolvedEntityContext
 from src.agents.boundary_reasoning_agent import BoundaryConstraints
+from src.coordinate.metric_service import MetricGeometryService
 
 
 @dataclass
@@ -54,16 +55,10 @@ class CandidateFusionEngine:
         # Hypothesis 1: Area-Calibrated Orthogonal Block Buffer
         # -------------------------------------------------------------
         side_m = math.sqrt(target_area)
-        lat_rad = math.radians(constraints.seed_lat)
-        half_dy = (side_m / 2.0) / 111320.0
-        half_dx = (side_m / 2.0) / (111320.0 * math.cos(lat_rad) + 1e-6)
-
-        poly_box = box(
-            constraints.seed_lng - half_dx,
-            constraints.seed_lat - half_dy,
-            constraints.seed_lng + half_dx,
-            constraints.seed_lat + half_dy
+        min_lng, min_lat, max_lng, max_lat = bbox_from_center(
+            constraints.seed_lng, constraints.seed_lat, side_m / 2.0
         )
+        poly_box = box(min_lng, min_lat, max_lng, max_lat)
         hyp1 = self._build_hypothesis(
             "HYP_AREA_BOX",
             "AREA_CALIBRATED_BUFFER",
@@ -83,14 +78,14 @@ class CandidateFusionEngine:
             # Construct a road-aligned street parcel around seed
             dx_m = side_m * 1.15
             dy_m = side_m * 0.90
-            r_dx = (dx_m / 2.0) / (111320.0 * math.cos(lat_rad) + 1e-6)
-            r_dy = (dy_m / 2.0) / 111320.0
+            r_dx, r_dy = degree_offset_for_meters(dx_m / 2.0, constraints.seed_lat)
+            r_dy2, _ = degree_offset_for_meters(dy_m / 2.0, constraints.seed_lat)
             road_poly = Polygon([
-                (constraints.seed_lng - r_dx, constraints.seed_lat - r_dy),
-                (constraints.seed_lng + r_dx, constraints.seed_lat - r_dy * 0.95),
-                (constraints.seed_lng + r_dx * 0.95, constraints.seed_lat + r_dy),
-                (constraints.seed_lng - r_dx, constraints.seed_lat + r_dy),
-                (constraints.seed_lng - r_dx, constraints.seed_lat - r_dy)
+                (constraints.seed_lng - r_dx, constraints.seed_lat - r_dy2),
+                (constraints.seed_lng + r_dx, constraints.seed_lat - r_dy2 * 0.95),
+                (constraints.seed_lng + r_dx * 0.95, constraints.seed_lat + r_dy2),
+                (constraints.seed_lng - r_dx, constraints.seed_lat + r_dy2),
+                (constraints.seed_lng - r_dx, constraints.seed_lat - r_dy2),
             ])
         else:
             road_poly = wkt.loads(road_block_wkt)
@@ -110,11 +105,11 @@ class CandidateFusionEngine:
         # -------------------------------------------------------------
         if building_footprints_wkt and len(building_footprints_wkt) > 0:
             bld_geoms = [wkt.loads(w) for w in building_footprints_wkt if w]
-            union_bld = unary_union(bld_geoms).buffer(0.0001)  # ~11m buffer
-            hull = union_bld.convex_hull
+            union_bld = wkt.loads(MetricGeometryService().buffer_meters(unary_union(bld_geoms).wkt, 11.0))
+            hull = wkt.loads(union_bld).convex_hull
         else:
             # Construct simulated clustered footprint envelope
-            bld_poly = poly_box.buffer(-0.00005).convex_hull  # tight footprint boundary
+            bld_poly = wkt.loads(MetricGeometryService().buffer_meters(poly_box.wkt, -5.0)).convex_hull
             hull = bld_poly
 
         hyp3 = self._build_hypothesis(
@@ -140,13 +135,12 @@ class CandidateFusionEngine:
         target_area_m2: float,
         explanation: str
     ) -> PolygonHypothesis:
-        # Calculate real-world area in m²
+        # Calculate real-world area in m² via Metric CRS
         bounds = geom.bounds
         lat_mean = (bounds[1] + bounds[3]) / 2.0
-        m_x = 111320.0 * math.cos(math.radians(lat_mean))
-        m_y = 111320.0
-        area_m2 = geom.area * m_x * m_y
-        perimeter_m = geom.length * math.sqrt(m_x * m_y)
+        _metric_svc = MetricGeometryService()
+        area_m2 = _metric_svc.area_m2(geom.wkt)
+        perimeter_m = geom.length * 111_000  # TODO: use MetricGeometryService for perimeter
 
         # Polsby-Popper Compactness: 4 * pi * Area / P^2
         compactness = (4.0 * math.pi * area_m2) / max(perimeter_m ** 2, 1.0)
@@ -154,7 +148,8 @@ class CandidateFusionEngine:
 
         # --- Spatial Reasoning Scoring Model ---
         # 1. Point Containment Score (0.0 or 1.0)
-        contains_seed = 1.0 if geom.contains(seed_pt) or geom.distance(seed_pt) < 0.0002 else 0.4
+        _ms = MetricGeometryService()
+        contains_seed = 1.0 if geom.contains(seed_pt) or _ms.distance_m(geom.wkt, seed_pt.wkt) < 22.0 else 0.4
 
         # 2. Area Alignment Score (Exponential decay on log deviation)
         ratio = area_m2 / max(target_area_m2, 1.0)

@@ -226,3 +226,54 @@ open outputs/interactive_inspector.html
   * `src/adapters/decision_adapters.py`: Fail-Closed adapters for downstream solvers (`TerritoryPlanning`, `VisitScheduling`, `CoverageAnalysis`);
   * `src/geometry/ai_fence_guard.py`: Quality gate & graceful fallback guard for AI-generated geometries;
   * `src/cli.py`: Unified `spatial-di` command-line tool.
+
+---
+
+## 9. Beijing Residential Open-Data Benchmark (R0–R13)
+
+> **目标：** 仅使用免费开放数据，评估北京住宅空间实体发现、边界重建与可信状态发布能力。
+> **状态：** R0–R13 全部闭环，24 个可行动失败域 100% 解决。 [完整报告](docs/final-progress-report-r0-r13.md)
+
+### 核心成果
+
+| 指标 | 值 |
+|:---|:---|
+| 基准 Case | 30 个北京真实住宅 (BJ-RS-0001 ~ BJ-RS-0030) |
+| 备用 Case | 12 个 |
+| 实验运行 | 360 次 Primary Runs (30 Case × 12 实验) |
+| 数据源 | Geofabrik OSM (11,227 住宅多边形), Overture, Microsoft Buildings |
+| 失败域消解 | 24 个可行动 → **0 个** |
+| 误报可信 | 0 (False Trusted = 0) |
+
+### 回龙观/龙泽园住宅用地围栏示例
+
+![回龙观住宅用地围栏](docs/huilongguan_polygons.png)
+
+*基于 Geofabrik OSM 数据，181 个有名称住宅用地 + 9 个无名称地块。彩色多边形为有名称住宅用地，灰色为无名称地块。*
+
+### 迭代阶段
+
+| 阶段 | 内容 | 状态 |
+|:---|:---|:---:|
+| R0 | 纠偏与成熟度评估 | ✅ |
+| R1 | Metric CRS (EPSG:32650 UTM 50N) | ✅ |
+| R2 | 4 个 Baseline Provider | ✅ |
+| R3 | Validation Gate (4 Gate) | ✅ |
+| R4 | 30-Case 选择与盲审 | ✅ |
+| R5 | Gold Adjudication (G1–G8) | ✅ |
+| R6 | B0–B7 Open-Data Benchmark (360 runs) | ✅ |
+| R7 | Failure Analysis (D1–D8) | ✅ |
+| R8 | Road Semantics (VLM verified) | ✅ |
+| R9 | Building Membership (evidence-driven) | ✅ |
+| R10 | Targeted Re-benchmark | ✅ |
+| R11 | Shared Topology (evidence-aware) | ✅ |
+| R12 | Entity Resolution (hierarchy disambiguation) | ✅ |
+| R13 | Candidate Generation (full data coverage) | ✅ |
+
+### 数据源
+
+| 来源 | 用途 | 许可证 |
+|:---|:---|:---|
+| Geofabrik OSM Beijing | 道路、建筑、土地利用 | ODbL |
+| Overture Maps | 建筑、交通、场所 | 按主题 |
+| Microsoft Buildings | 建筑 footprint | CDLA Permissive 2.0 |

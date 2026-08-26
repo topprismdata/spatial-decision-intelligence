@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, Any
 
 from src.agents.entity_resolution_agent import ResolvedEntityContext
+from src.coordinate.metric_crs import degree_offset_for_meters
 
 
 @dataclass
@@ -63,16 +64,14 @@ class BoundaryReasoningAgent:
             radius_m = scale_cfg["radius"]
             zoom = scale_cfg["zoom"]
 
-        # Approximate degree deltas at latitude
-        lat_rad = math.radians(seed_lat)
-        dlat = radius_m / 111320.0
-        dlng = radius_m / (111320.0 * math.cos(lat_rad) + 1e-6)
+        # Compute degree deltas at latitude via Metric CRS
+        dlat, dlng = degree_offset_for_meters(radius_m, seed_lat)
 
         bbox = (
             round(seed_lng - dlng, 6),
             round(seed_lat - dlat, 6),
             round(seed_lng + dlng, 6),
-            round(seed_lat + dlat, 6)
+            round(seed_lat + dlat, 6),
         )
 
         return BoundaryConstraints(

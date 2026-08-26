@@ -7,6 +7,8 @@ from shapely import wkt
 from shapely.strtree import STRtree
 from shapely.geometry import Polygon, MultiPolygon, Point
 from src.domain.models import SourceRecord
+from src.coordinate.metric_service import MetricGeometryService
+_metric_svc = MetricGeometryService()
 
 
 class CandidateRetrievalEngine:
@@ -17,7 +19,7 @@ class CandidateRetrievalEngine:
         records: List[SourceRecord],
         norm_geoms: Dict[str, Any],  # source_id -> shapely geometry
         norm_coords: Dict[str, Tuple[float, float]],  # source_id -> (lng, lat)
-        buffer_degrees: float = 0.003  # ~300 meters buffer
+        buffer_meters: float = 300.0  # default ~300m search radius
     ) -> List[Tuple[SourceRecord, SourceRecord]]:
         """
         Generates candidate pairs using Spatial STRtree + Lexical Blocking per city.
@@ -38,12 +40,12 @@ class CandidateRetrievalEngine:
                 geom = norm_geoms.get(r.source_record_id)
                 if geom and not geom.is_empty:
                     valid_recs.append(r)
-                    geometries.append(geom.buffer(buffer_degrees))
+                    geometries.append(geom.buffer(_metric_svc.snap_tolerance_deg(buffer_meters, r.point_raw_lat or 39.9)))
                 else:
                     # Point fallback
                     coords = norm_coords.get(r.source_record_id)
                     if coords and coords[0] != 0:
-                        pt_geom = Point(coords[0], coords[1]).buffer(buffer_degrees)
+                        pt_geom = Point(coords[0], coords[1]).buffer(_metric_svc.snap_tolerance_deg(buffer_meters, coords[1]))
                         valid_recs.append(r)
                         geometries.append(pt_geom)
 
