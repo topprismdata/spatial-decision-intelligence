@@ -75,9 +75,55 @@ class EntityHierarchyResolver:
 
         return assertions
 
+    def __init__(self, gazetteer=None):
+        # Optional R14-P5 AmapGazetteer for admin-chain-backed disambiguation.
+        self._gazetteer = gazetteer
+
     def disambiguate_same_name(self, entity_a: str, entity_b: str,
                                 geom_a: str, geom_b: str) -> EntityPairRelation:
-        """Determine if two entities with the same name are the same or different."""
+        """Determine if two entities with the same name are the same or different.
+
+        When a gazetteer is wired and both names carry phase tokens with a
+        district verdict, the admin chains override pure geometry distance:
+          same base + different districts  -> DISTINCT (cross-town twin names)
+          same base + same district        -> SIBLING (confident)
+          ambiguous own-chains + disjoint districts -> DISTINCT (twins)
+        """
+        if self._gazetteer is not None:
+            verdict = self._gazetteer.resolves_same_estate(entity_a, entity_b)
+            if verdict is True:
+                return EntityPairRelation(
+                    entity_a=entity_a, entity_b=entity_b,
+                    relation=EntityRelation.SIBLING,
+                    confidence=0.85,
+                    evidence=("gazetteer:same_estate",),
+                )
+            if verdict is False:
+                return EntityPairRelation(
+                    entity_a=entity_a, entity_b=entity_b,
+                    relation=EntityRelation.DISTINCT,
+                    confidence=0.9,
+                    evidence=("gazetteer:district_mismatch",),
+                )
+            # Ambiguous-gazetteer special case: a name whose own chains span
+            # multiple districts is a cross-town twin — geometry alone must
+            # never collapse two such candidates to SAME_ENTITY unless both
+            # actually sit in one shared district.
+            da = {r.district for r in self._gazetteer.chains_for(entity_a) if r.district}
+            db = {r.district for r in self._gazetteer.chains_for(entity_b) if r.district}
+            if len(da) > 1 and len(db) > 1:
+                from shapely import wkt as _wkt_pre
+                ga_pre = _wkt_pre.loads(geom_a)
+                gb_pre = _wkt_pre.loads(geom_b)
+                dist_m = ga_pre.distance(gb_pre) * 111_000
+                return EntityPairRelation(
+                    entity_a=entity_a, entity_b=entity_b,
+                    relation=EntityRelation.DISTINCT,
+                    confidence=0.75,
+                    evidence=(f"gazetteer:ambiguous_multi_district:{sorted(da)}x{sorted(db)}",
+                              f"twins:geom_dist={dist_m:.0f}m"),
+                )
+            # Otherwise None -> fall through to geometric heuristic below.
         from shapely import wkt as _wkt
         ga = _wkt.loads(geom_a)
         gb = _wkt.loads(geom_b)

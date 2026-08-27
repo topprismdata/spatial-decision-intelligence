@@ -28,12 +28,16 @@ class GazetteerRecord:
     district: str = ""
     business_area: str = ""
 
-
 class AmapGazetteer:
     """Offline lookup: name → set of administrative chains."""
 
-    # Phase indicator used to split "龙腾苑二区" → base "龙腾苑" + phase "二区"
-    _PHASE = re.compile(r"([一二三四五六七八九十\d]+期|[A-Z一二三四五六七八九十\d]+区)")
+    # Phase indicators: 一期/二期…, 1期/A期, A区/B区, 二区, 北区/南区/东区/西区
+    # (cardinal-direction subareas like 建明里-北区 are common in matched POIs)
+    _PHASE = re.compile(
+        r"([一二三四五六七八九十\d]+期"
+        r"|[A-Z一二三四五六七八九十\d]+区"
+        r"|[东南西北]区)"
+    )
 
     def __init__(self, records: tuple[GazetteerRecord, ...] = ()):
         self._by_name: dict[str, list[GazetteerRecord]] = {}
@@ -42,18 +46,29 @@ class AmapGazetteer:
 
     @classmethod
     def from_match_csv(cls, csv_path: str) -> "AmapGazetteer":
+        """Load from either the base match CSV (address-as-district, weak)
+        or the R14-P5 admin CSV (pname/cityname/adname columns, preferred)."""
         records: list[GazetteerRecord] = []
+
+        def _add(row):
+            name = (row.get("amap_name") or "").strip()
+            if not name:
+                return
+            district = (row.get("adname") or "").strip()  # authoritative when present
+            if not district:
+                addr = row.get("amap_address") or ""
+                records.append(GazetteerRecord(name=name, district=addr))
+                return
+            records.append(GazetteerRecord(
+                name=name, province=row.get("pname", ""),
+                city=row.get("cityname", ""), district=district,
+                business_area=(row.get("business") or "").strip(),
+            ))
+
         try:
             with open(csv_path, newline="", encoding="utf-8") as f:
                 for row in csv.DictReader(f):
-                    name = (row.get("amap_name") or "").strip()
-                    if not name:
-                        continue
-                    addr = row.get("amap_address") or ""
-                    records.append(GazetteerRecord(
-                        name=name,
-                        district=addr,
-                    ))
+                    _add(row)
         except FileNotFoundError:
             pass
         return cls(tuple(records))
@@ -62,17 +77,21 @@ class AmapGazetteer:
         return self._by_name.get(name.strip(), [])
 
     def same_district(self, name_a: str, name_b: str) -> Optional[bool]:
-        """True/False if both names resolve to single comparable districts;
-        None when either is unknown or ambiguous in the gazetteer."""
+        """True iff EVERY chain of both names agrees on one district.
+
+        Ambiguous names (multiple district candidates) abstain: intersecting
+        district sets would produce false 'same' verdicts for cross-town
+        twin estates sharing a name.
+        """
         ra = self.chains_for(name_a)
         rb = self.chains_for(name_b)
         if not ra or not rb:
             return None
         da = {r.district for r in ra if r.district}
         db = {r.district for r in rb if r.district}
-        if not da or not db:
+        if len(da) != 1 or len(db) != 1:
             return None
-        return bool(da & db)
+        return da == db
 
     def split_phase(self, name: str) -> tuple[str, str]:
         """Return (base_name, phase_token); phase is '' when absent."""
@@ -98,7 +117,19 @@ class AmapGazetteer:
         return True if same else None
 
 
-def gazetteer_from_batch_outputs(match_csv: str = "outputs/beijing_batch/amap_name_matches.csv",
-                                 ) -> AmapGazetteer:
-    """Convenience loader wired to the 2026-08-27 Beijing batch artifacts."""
-    return AmapGazetteer.from_match_csv(match_csv)
+def gazetteer_from_batch_outputs(
+    match_csv: str = "outputs/beijing_batch/amap_name_matches.csv",
+    admin_csv: str = "outputs/beijing_batch/amap_name_admin.csv",
+) -> AmapGazetteer:
+    """Convenience loader. Prefers the admin-enriched CSV and falls back
+    to the base match CSV for names absent from it."""
+    gaz = AmapGazetteer.from_match_csv(admin_csv)
+    if len(gaz._by_name) == 0:
+        return AmapGazetteer.from_match_csv(match_csv)
+    # Merge: add entries only for names not already covered.
+    fallback = AmapGazetteer.from_match_csv(match_csv)
+    for name, recs in fallback._by_name.items():
+        for r in recs:
+            if name not in gaz._by_name:
+                gaz._by_name[name] = recs
+    return gaz
