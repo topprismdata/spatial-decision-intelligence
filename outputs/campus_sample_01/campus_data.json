@@ -146,10 +146,11 @@
       "type": "食堂",
       "lng": 116.7429,
       "lat": 39.9074,
-      "membership": "AMBIGUOUS",
+      "membership": "IN_CAMPUS",
       "expected": "IN_CAMPUS",
-      "match": "⚠",
-      "reason": "校内距围墙170m"
+      "match": "✓",
+      "reason": "校内距围墙170m",
+      "dist_to_boundary_m": 170
     },
     {
       "name": "人大通州校区禾园食堂",
@@ -159,7 +160,8 @@
       "membership": "IN_CAMPUS",
       "expected": "IN_CAMPUS",
       "match": "✓",
-      "reason": "校内距围墙272m"
+      "reason": "校内距围墙272m",
+      "dist_to_boundary_m": 272
     },
     {
       "name": "人大通州校区丰园食堂",
@@ -169,7 +171,8 @@
       "membership": "AMBIGUOUS",
       "expected": "IN_CAMPUS",
       "match": "⚠",
-      "reason": "校内距围墙110m"
+      "reason": "校内距围墙110m",
+      "dist_to_boundary_m": 110
     },
     {
       "name": "地铁便利(潞城站)",
@@ -179,7 +182,8 @@
       "membership": "AMBIGUOUS",
       "expected": "AMBIGUOUS",
       "match": "✓",
-      "reason": "校外距围墙115m"
+      "reason": "校外距围墙115m",
+      "dist_to_boundary_m": 115
     },
     {
       "name": "Grid Coffee 通州万象汇店",
@@ -189,7 +193,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙447m"
+      "reason": "校外距围墙447m",
+      "dist_to_boundary_m": 447
     },
     {
       "name": "瑞幸咖啡(首开万象汇店)",
@@ -199,7 +204,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙459m"
+      "reason": "校外距围墙459m",
+      "dist_to_boundary_m": 459
     },
     {
       "name": "星巴克(北投大厦店)",
@@ -209,7 +215,8 @@
       "membership": "AMBIGUOUS",
       "expected": "AMBIGUOUS",
       "match": "✓",
-      "reason": "校外距围墙123m"
+      "reason": "校外距围墙123m",
+      "dist_to_boundary_m": 123
     },
     {
       "name": "家家悦(首开万象汇店)",
@@ -219,7 +226,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙581m"
+      "reason": "校外距围墙581m",
+      "dist_to_boundary_m": 581
     },
     {
       "name": "7-ELEVEn(首开万象汇店)",
@@ -229,7 +237,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙425m"
+      "reason": "校外距围墙425m",
+      "dist_to_boundary_m": 425
     },
     {
       "name": "天源超市",
@@ -238,8 +247,9 @@
       "lat": 39.8995,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗",
-      "reason": "校外距围墙283m"
+      "match": "✓",
+      "reason": "校外距围墙283m",
+      "dist_to_boundary_m": 283
     },
     {
       "name": "庆鑫便利店",
@@ -248,8 +258,9 @@
       "lat": 39.8978,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗",
-      "reason": "校外距围墙489m"
+      "match": "✓",
+      "reason": "校外距围墙489m",
+      "dist_to_boundary_m": 489
     },
     {
       "name": "鑫大地生活超市(副中心)",
@@ -258,8 +269,9 @@
       "lat": 39.9115,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗",
-      "reason": "校外距围墙893m"
+      "match": "✓",
+      "reason": "校外距围墙893m",
+      "dist_to_boundary_m": 893
     },
     {
       "name": "北京祥运达好药师",
@@ -268,8 +280,9 @@
       "lat": 39.8921,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗",
-      "reason": "校外距围墙4373m"
+      "match": "✓",
+      "reason": "校外距围墙4373m",
+      "dist_to_boundary_m": 4373
     },
     {
       "name": "玫瑰坊商业中心",
@@ -278,8 +291,9 @@
       "lat": 39.8798,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗",
-      "reason": "校外距围墙6764m"
+      "match": "✓",
+      "reason": "校外距围墙6764m",
+      "dist_to_boundary_m": 6764
     }
   ],
   "campus_polygon_wkt": "POLYGON ((116.7357502 39.9091945, 116.7356497 39.9090992, 116.7353537 39.9090904, 116.7352011 39.9091903, 116.7337344 39.9091984, 116.7336532 39.9091108, 116.7336226 39.9067031, 116.7336005 39.9060098...",
