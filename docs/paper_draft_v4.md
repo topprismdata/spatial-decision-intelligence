@@ -117,6 +117,59 @@ Evidence sources are ranked by *authority over the proposition in question*:
 
 The ordering is *proposition-relative*: OSM geometry outranks Amap's point-only POI for *shape*, while Amap's type chain outranks OSM's `park` tag for *identity* (sports-park case, §5.1). The gate machinery enforces this ordering mechanically rather than by convention.
 
+### 3.4 The Formal Invariant System
+
+The architecture is held together not by conventions but by **mechanized
+invariants** — fourteen properties, each enforced in code, each with a test
+that fails if the property is violated (85 dedicated tests; full-suite
+regression held at parity throughout). They organize into four layers, and
+the layering is itself the decoupling claim: perception advances replace
+operators (layer P), new facility domains add constraint data (layer G),
+fusion strategies swap behind a stable interface (layer S) — and the
+container (layer C) that makes the whole auditable never changes.
+
+**Table 1. The invariant system.**
+
+| Layer | ID | Invariant | Formal statement | Enforcement |
+|:--|:--|:---|:---|:---|
+| C | INV-1 | Transition legality | only transitions in the legality table occur | `(state, transition)` checked at append |
+| C | INV-2 | Chain integrity | append-only, hash-chained event log; tamper-evident and rehydratable | per-event SHA-256 over canonical JSON with prev-hash links |
+| C | INV-3 | Publish gate | `PUBLISHED` requires non-empty evidence refs and input/output digests — zero-false-publish by construction | governance transition pre-check |
+| C | INV-4 | Replayability | re-execution reproduces recorded digests; wall-clock is recorded but never digested | clock injection; temporal fields excluded from hashes |
+| S | INV-5 | Lattice semantics | `REJECTED < UNRESOLVED < PROVISIONAL < TRUSTED`; join = max, meet = min | rank ordering overriding inherited lexicographic comparison |
+| S | INV-6 | No evidence, no upgrade | disposition rises only on new SUPPORTING evidence | snapshot-history checker |
+| S | INV-7 | Refutation-gated demotion | disposition falls only on REFUTING or superseding evidence | snapshot-history checker |
+| S | INV-8 | Zero-false-trust | `TRUSTED` requires full required-category coverage; every snapshot is re-derivable from its evidence prefix | prefix recomputation checker |
+| S | A1–A5 | Evidence algebra laws | `combine` is a commutative-associative monoid; arbitration idempotent; 0 ≤ belief ≤ plausibility ≤ 1; supporting mass never lowers belief; conflict K ∈ [0,1] with Yager fallback at K = 1 | algebra law tests over the full case matrix |
+| G | INV-9 | Spec/data separation | the gate interpreter is domain-blind: a pure walk of the constraint tree over a facts mapping | interpreter holds no thresholds |
+| G | INV-10 | Fail-closed specs | unknown operators or malformed nodes raise at load time, never silently pass at evaluate time | closed operator registry, load-time validation |
+| G | INV-11 | Totality | missing or null facts fail constraints; sparse facts never crash a gate | total evaluator |
+| P | INV-12 | Plug-in seam | new perception registers by id with zero engine change; unknown ids fail at plan resolution | operator registry |
+| P | INV-13 | Lineage append-only | refinement appends operator ids, never rewrites; the method field preserves the original generator | frozen dataclass + lineage-growing constructor |
+| P | INV-14 | Veto semantics | verify operators never delete candidates; vetoed hypotheses survive with explicit reports for downstream fail-closed gates | scored-candidate veto flag |
+
+Three consequences deserve emphasis.
+
+**Trust is derived, never stored.** Dispositions are recomputed from the
+evidence set; snapshots are re-derivable from evidence prefixes (INV-8);
+and publication is a transition that can only be taken with the evidence in
+hand (INV-3). A fabricated TRUSTED state is not a policy violation — it is
+a failed check that raises before publish.
+
+**Audit is replay, not log-reading.** Because wall-clock time is recorded
+but never digested (INV-4) and the perception agents are pure functions of
+their inputs, any historical run re-executes to the identical hash chain. A
+reviewer verifying a boundary re-runs the computation and compares digests:
+the provenance chain is checked by computation, not by trusting prose.
+
+**Extension points are data, not forks.** The two plugin layers are where
+all growth happens. A new facility domain is a constraint dict — a school
+profile differs from the residential default in area bounds alone, and the
+system accepts it with zero engine changes (demonstrated in test). A new
+sensor is an operator registration. Neither touches the container or the
+semantic layer, which is what makes the five-domain Beijing deployment
+(§6.4) one agent over one architecture rather than five pipelines.
+
 ---
 
 ## 4. Agent Architecture
@@ -161,7 +214,7 @@ The generation stage (A3) is where the classical algorithms live; the architectu
 | BuildingCluster | DBSCAN(30 m) on footprints → concave hull (Duckham, k=0.8) | O(n log n) |
 | AreaPrior | profile circle prior around seed | O(1) |
 
-The refinement suite (concave hull + distance-weighted vegetation + road clipping; §5) executes on the selected hypothesis and is re-verified by the same gates.
+The refinement suite (concave hull + distance-weighted vegetation + road clipping; §5) executes on the selected hypothesis and is re-verified by the same gates. Implementation note: providers and refinement stages are *registered operators* in a perception algebra (INV-12..14, Table 1) — composition is data, every hypothesis carries an append-only lineage, and verification appends reports rather than deleting candidates, so fail-closed gating downstream always sees the evidence, never a silent absence.
 
 ### 4.3 The VLM as Perceptual Instrument
 
@@ -183,6 +236,8 @@ We deliberately exclude VLM-emitted coordinates: localization benchmarks (GEOBen
 | G5 Consumer readiness | per-profile geometric constraints | NOT_READY |
 
 G4 operationalizes a data-quality finding from the residential study: 4,919/11,227 unnamed `landuse=residential` polygons carry no residential POI support within 200 m and are, overwhelmingly, farmland mislabels. The gate rejects them *as a class* — the agent has learned, and the rule is auditable.
+
+Implementation note: the five gates are declarative constraint specifications (INV-9..11, Table 1) — thresholds, branches, and combinators are serializable data interpreted by a domain-blind engine; onboarding a facility domain is a constraint dict, not an engine fork.
 
 ---
 
