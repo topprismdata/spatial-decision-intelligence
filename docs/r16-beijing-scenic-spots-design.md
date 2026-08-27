@@ -110,3 +110,15 @@ url=f"https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z=15"
 | 标注图层 style=8, z=17 | ✅ 200 |
 | 道路 style=7 | ✅ |
 | 静态地图 staticmap API | ❌ 需要 Web服务 key (免费的也不行) |
+
+---
+
+## 七、合规声明（2026-08-27）
+
+根据《中华人民共和国测绘法》《地图管理条例》《数据安全法》：
+
+1. **已删除全部军事用地面**（原 386 面，分类码 MIL）
+2. **坐标精度已降至小数点后 3 位**（约 100m），不构成高精度地理数据
+3. 数据来源为 [OpenStreetMap](https://www.openstreetmap.org/copyright)（ODbL 许可）及公开 POI 数据
+4. 本数据仅供技术演示与学术研究，不得用于导航、测绘或商业用途
+5. 未包含任何涉密地理位置、关键基础设施或国家战略要地信息
