@@ -52,3 +52,4 @@ outputs/*.pt
 *.prj
 *.cpg
 outputs/
+docs/archive_zh/
