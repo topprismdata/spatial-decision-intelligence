@@ -1,10 +1,13 @@
 """P0-08 / R3 Validation Pipeline & Gate Verification.
 
-Includes:
-- OntologyGate, GeometryGate, EvidenceGate, DecisionReadinessGate
-- FinalDisposition resolution (TRUSTED, PROVISIONAL, UNRESOLVED, REJECTED)
-- ConsumerProfile aware DecisionReadiness
-- Full findings and provenance preservation
+Proposal 3 refactor: gate DECISION LOGIC is data (GateSpec in
+src/validation/gate_spec.py); each gate class is now a thin adapter that
+(1) extracts facts from its input objects, (2) interprets its spec, and
+(3) maps the outcome onto ValidationResult. Thresholds, branches, and
+combinators live in serializable spec constants - onboarding a new facility
+domain means writing a spec dict, not patching engine code. Facts extraction
+(WKT parsing, metric area, evidence scans) remains code by design: the
+interpreter is domain-blind (INV-9).
 """
 
 from __future__ import annotations
@@ -24,7 +27,17 @@ from src.domain.contracts import (
 )
 from src.coordinate.metric_service import MetricGeometryService
 from src.validation.external_coverage_gate import ExternalCoverageGate, PolygonContext
-
+from src.validation.gate_spec import (
+    AllOf,
+    AnyOf,
+    Fact,
+    GateOutcome,
+    GateSpec,
+    MinCount,
+    Not,
+    WarnIf,
+    evaluate_spec,
+)
 
 
 class FinalDisposition(str, Enum):
@@ -72,41 +85,121 @@ PROFILE_TERRITORY_OPTIMIZATION = ConsumerProfile(
 )
 
 
-# ── Gates ────────────────────────────────────────────────────────────────────
+# ── Gate Specifications (data - the constraint "files") ──────────────────────
+
+#: Ontology: the entity type must be a legal OntologyType; an Estate acting
+#: directly as a physical boundary is warnable, not fatal.
+ONTOLOGY_SPEC = GateSpec(
+    gate_id="OntologyGate",
+    must=AllOf(children=(
+        Fact(field="entity_type_valid", op="eq", value=True),
+        WarnIf(child=Fact(field="estate_role_ok", op="eq", value=True)),
+    )),
+)
+
+#: Geometry: parse failures / empty / self-intersecting are BLOCKED; area
+#: outside profile bounds is FAILED; low compactness is a warnable downgrade.
+GEOMETRY_SPEC = GateSpec(
+    gate_id="GeometryGate",
+    blocked=AnyOf(children=(
+        Fact(field="wkt_empty", op="eq", value=True),
+        Fact(field="wkt_parse_error", op="present"),
+        Fact(field="geom_is_valid", op="eq", value=False),
+    )),
+    must=AllOf(children=(
+        Fact(field="area_m2", op="between", value=(100.0, 5_000_000.0)),
+    )),
+    warns=WarnIf(child=Fact(field="compactness_ok", op="eq", value=True)),
+)
+
+#: Evidence: at least one evidence item (must); a fatal contradiction is
+#: BLOCKED; a single weak area-prior is a warnable downgrade.
+EVIDENCE_SPEC = GateSpec(
+    gate_id="EvidenceGate",
+    blocked=Fact(field="has_fatal_conflict", op="eq", value=True),
+    must=AllOf(children=(MinCount(field="evidence", n=1),)),
+    warns=WarnIf(child=Fact(field="single_weak_prior", op="eq", value=False)),
+)
+
+#: Consumer readiness matrix (routing rules for REJECTED/UNRESOLVED/topology
+#: stay in the adapter - they are cross-gate routing, not domain policy).
+READINESS_SPEC_TEMPLATE = GateSpec(
+    gate_id="DecisionReadinessGate",
+    must=AllOf(children=(
+        AnyOf(children=(
+            Fact(field="disposition", op="ne", value="PROVISIONAL"),
+            Fact(field="allow_provisional", op="eq", value=True),
+        )),
+        Fact(field="confidence_ok", op="eq", value=True),
+    )),
+    warns=WarnIf(child=AllOf(children=(
+        Fact(field="has_warnings", op="eq", value=False),
+        Fact(field="disposition", op="ne", value="PROVISIONAL"),
+    ))),
+)
+
+
+
+def readiness_spec_for(consumer: ConsumerProfile) -> GateSpec:
+    """A consumer profile instantiates its own readiness spec - this is the
+    'new domain = new data' seam. min_confidence is baked into a precomputed
+    fact by the adapter; allow_provisional flows from the profile."""
+    return GateSpec(
+        gate_id=f"DecisionReadinessGate/{consumer.name}",
+        must=AllOf(children=(
+            AnyOf(children=(
+                Fact(field="disposition", op="ne", value="PROVISIONAL"),
+                Fact(field="allow_provisional", op="eq", value=True),
+            )),
+            Fact(field="confidence_ok", op="eq", value=True),
+        )),
+        warns=WarnIf(child=AllOf(children=(
+            Fact(field="has_warnings", op="eq", value=False),
+            Fact(field="disposition", op="ne", value="PROVISIONAL"),
+        ))),
+    )
+
+
+def _outcome_to_result(
+    outcome: GateOutcome, entity_id: str, validator: str
+) -> ValidationResult:
+    return ValidationResult(
+        entity_id=entity_id,
+        validator=validator,
+        status=ValidationStatus[outcome.status],
+        findings=tuple(outcome.findings),
+        decision_ready=outcome.decision_ready,
+    )
+
+
+# ── Gates (spec-driven adapters) ─────────────────────────────────────────────
 
 
 class OntologyGate:
+    SPEC = ONTOLOGY_SPEC
+
     @staticmethod
     def validate(
         entity_type: OntologyType,
         boundary_role: str = "PHYSICAL_BOUNDARY",
         hypothesis: Optional[BoundaryHypothesis] = None
     ) -> ValidationResult:
-        findings = []
         entity_id = hypothesis.entity_id if hypothesis else ""
-
-        if not isinstance(entity_type, OntologyType) or entity_type not in OntologyType:
-            findings.append(f"invalid_ontology_type:{entity_type}")
-            return ValidationResult(
-                entity_id=entity_id, validator="OntologyGate",
-                status=ValidationStatus.FAILED, findings=tuple(findings), decision_ready=False
-            )
-
-        # Disallow raw Estate acting directly as un-subdivided physical boundary with high warning
-        if entity_type == OntologyType.RESIDENTIAL_ESTATE and boundary_role == "PHYSICAL_BOUNDARY":
-            findings.append("role_warning:ResidentialEstate used directly as physical boundary without phase subdivision")
-            return ValidationResult(
-                entity_id=entity_id, validator="OntologyGate",
-                status=ValidationStatus.WARNED, findings=tuple(findings), decision_ready=True
-            )
-
-        return ValidationResult(
-            entity_id=entity_id, validator="OntologyGate",
-            status=ValidationStatus.PASSED, findings=(), decision_ready=True
+        facts = {
+            "entity_type_valid": isinstance(entity_type, OntologyType)
+            and entity_type in OntologyType,
+            "estate_role_ok": not (
+                entity_type == OntologyType.RESIDENTIAL_ESTATE
+                and boundary_role == "PHYSICAL_BOUNDARY"
+            ),
+        }
+        return _outcome_to_result(
+            evaluate_spec(OntologyGate.SPEC, facts), entity_id, "OntologyGate"
         )
 
 
 class GeometryGate:
+    SPEC = GEOMETRY_SPEC
     MIN_AREA_M2 = 100.0
     MAX_AREA_M2 = 5_000_000.0
 
@@ -114,103 +207,69 @@ class GeometryGate:
         self._ms = metric_service or MetricGeometryService()
 
     def validate(self, hypothesis: BoundaryHypothesis) -> ValidationResult:
-        findings = []
         entity_id = hypothesis.entity_id
         geom_wkt = hypothesis.geometry
 
-        if not geom_wkt or geom_wkt.strip() == "" or geom_wkt.upper() == "POLYGON EMPTY":
-            return ValidationResult(
-                entity_id=entity_id, validator="GeometryGate",
-                status=ValidationStatus.BLOCKED, findings=("empty_geometry",), decision_ready=False
-            )
+        facts: dict = {
+            "wkt_empty": (
+                not geom_wkt or geom_wkt.strip() == ""
+                or geom_wkt.upper() == "POLYGON EMPTY"
+            ),
+            "wkt_parse_error": None,
+            "geom_is_valid": True,
+            "area_m2": None,
+            "compactness_ok": True,
+        }
+        if not facts["wkt_empty"]:
+            try:
+                from shapely import wkt as _wkt
+                geom = _wkt.loads(geom_wkt)
+                if geom.is_empty:
+                    facts["wkt_empty"] = True
+                else:
+                    facts["geom_is_valid"] = geom.is_valid
+                    if geom.is_valid:
+                        area_m2 = self._ms.area_m2(geom.wkt)
+                        facts["area_m2"] = area_m2
+                        p = geom.length * 111_000.0  # rough perimeter in meters
+                        compactness = (4.0 * 3.14159 * area_m2) / max(p * p, 1.0)
+                        facts["compactness_ok"] = compactness >= 0.05
+            except Exception as e:
+                facts["wkt_parse_error"] = str(e)
 
-        try:
-            from shapely import wkt as _wkt
-            geom = _wkt.loads(geom_wkt)
-
-            if geom.is_empty:
-                return ValidationResult(
-                    entity_id=entity_id, validator="GeometryGate",
-                    status=ValidationStatus.BLOCKED, findings=("empty_geometry",), decision_ready=False
-                )
-            if not geom.is_valid:
-                return ValidationResult(
-                    entity_id=entity_id, validator="GeometryGate",
-                    status=ValidationStatus.BLOCKED, findings=("invalid_geometry:self_intersection_or_corrupt",), decision_ready=False
-                )
-
-            # Projected Metric CRS area calculation
-            area_m2 = self._ms.area_m2(geom.wkt)
-            if area_m2 < self.MIN_AREA_M2:
-                findings.append(f"area_too_small:{area_m2:.0f}m2")
-                return ValidationResult(
-                    entity_id=entity_id, validator="GeometryGate",
-                    status=ValidationStatus.FAILED, findings=tuple(findings), decision_ready=False
-                )
-            elif area_m2 > self.MAX_AREA_M2:
-                findings.append(f"area_too_large:{area_m2:.0f}m2")
-                return ValidationResult(
-                    entity_id=entity_id, validator="GeometryGate",
-                    status=ValidationStatus.FAILED, findings=tuple(findings), decision_ready=False
-                )
-
-            # Compactness warning (non-fatal)
-            p = geom.length * 111_000.0  # rough perimeter in meter
-            compactness = (4.0 * 3.14159 * area_m2) / max(p * p, 1.0)
-            if compactness < 0.05:
-                findings.append(f"low_compactness:{compactness:.3f}")
-                return ValidationResult(
-                    entity_id=entity_id, validator="GeometryGate",
-                    status=ValidationStatus.WARNED, findings=tuple(findings), decision_ready=True
-                )
-
-        except Exception as e:
-            return ValidationResult(
-                entity_id=entity_id, validator="GeometryGate",
-                status=ValidationStatus.BLOCKED, findings=(f"parse_error:{e}",), decision_ready=False
-            )
-
-        return ValidationResult(
-            entity_id=entity_id, validator="GeometryGate",
-            status=ValidationStatus.PASSED, findings=(), decision_ready=True
+        return _outcome_to_result(
+            evaluate_spec(GeometryGate.SPEC, facts), entity_id, "GeometryGate"
         )
 
 
 class EvidenceGate:
+    SPEC = EVIDENCE_SPEC
+
     @staticmethod
     def validate(hypothesis: BoundaryHypothesis) -> ValidationResult:
         entity_id = hypothesis.entity_id
         ev_list = hypothesis.evidence
-
-        if not ev_list or len(ev_list) == 0:
-            return ValidationResult(
-                entity_id=entity_id, validator="EvidenceGate",
-                status=ValidationStatus.FAILED, findings=("evidence_insufficient:zero_evidence",), decision_ready=False
-            )
-
-        # Check for explicit contradiction/exclusion
-        for ev in ev_list:
-            if "conflict_contradiction" in ev.content.lower() or "explicit_exclusion" in ev.content.lower():
-                return ValidationResult(
-                    entity_id=entity_id, validator="EvidenceGate",
-                    status=ValidationStatus.BLOCKED, findings=(f"fatal_evidence_conflict:{ev.content}",), decision_ready=False
-                )
-
-        # Single weak prior warning
-        if len(ev_list) == 1 and ev_list[0].source == "AreaPriorBaseline":
-            return ValidationResult(
-                entity_id=entity_id, validator="EvidenceGate",
-                status=ValidationStatus.WARNED, findings=("single_weak_prior_evidence",), decision_ready=True
-            )
-
-        return ValidationResult(
-            entity_id=entity_id, validator="EvidenceGate",
-            status=ValidationStatus.PASSED, findings=(), decision_ready=True
+        facts = {
+            "evidence": list(ev_list),
+            "has_fatal_conflict": any(
+                "conflict_contradiction" in ev.content.lower()
+                or "explicit_exclusion" in ev.content.lower()
+                for ev in ev_list
+            ),
+            "single_weak_prior": (
+                len(ev_list) == 1
+                and ev_list[0].source == "AreaPriorBaseline"
+            ),
+        }
+        return _outcome_to_result(
+            evaluate_spec(EvidenceGate.SPEC, facts), entity_id, "EvidenceGate"
         )
 
 
 class DecisionReadinessGate:
-    """Consumer-aware gate. Assesses if the state matches specific consumer constraints."""
+    """Consumer-aware gate. Routing rules (REJECTED -> BLOCKED, UNRESOLVED ->
+    FAILED, topology attestation) stay in the adapter; the profile-dependent
+    matrix is the per-consumer spec."""
 
     @staticmethod
     def evaluate(
@@ -220,65 +279,49 @@ class DecisionReadinessGate:
         disposition: FinalDisposition,
     ) -> ValidationResult:
         entity_id = hypothesis.entity_id
-        findings = []
+        validator = f"DecisionReadinessGate/{consumer.name}"
 
-        # 1. Hard blocked if disposition is REJECTED
+        # Routing rules (cross-gate, not domain policy).
         if disposition == FinalDisposition.REJECTED:
             return ValidationResult(
-                entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-                status=ValidationStatus.BLOCKED, findings=("disposition_rejected",), decision_ready=False
+                entity_id=entity_id, validator=validator,
+                status=ValidationStatus.BLOCKED,
+                findings=("disposition_rejected",), decision_ready=False
             )
-
-        # 2. Unresolved is never ready for consumers
         if disposition == FinalDisposition.UNRESOLVED:
             return ValidationResult(
-                entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-                status=ValidationStatus.FAILED, findings=("disposition_unresolved",), decision_ready=False
+                entity_id=entity_id, validator=validator,
+                status=ValidationStatus.FAILED,
+                findings=("disposition_unresolved",), decision_ready=False
             )
-
-        # 3. Provisional handling
-        if disposition == FinalDisposition.PROVISIONAL and not consumer.allow_provisional:
-            findings.append("consumer_disallows_provisional")
+        if consumer.require_topology_consistency:
             return ValidationResult(
-                entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-                status=ValidationStatus.FAILED, findings=tuple(findings), decision_ready=False
+                entity_id=entity_id, validator=validator,
+                status=ValidationStatus.WARNED,
+                findings=("topology_consistency_not_attested",),
+                decision_ready=False
             )
 
-        # 4. Confidence threshold check
-        # Extract or calculate confidence from hypothesis evidence or score
+        # Confidence extraction (unchanged legacy chain).
         gen_score = getattr(hypothesis, "generation_score", None)
         if gen_score is None and hasattr(hypothesis, "metadata") and isinstance(hypothesis.metadata, dict):
             gen_score = hypothesis.metadata.get("generation_score", None)
-        if gen_score is None and hypothesis.evidence and len(hypothesis.evidence) > 0:
+        if gen_score is None and hypothesis.evidence:
             gen_score = max(ev.confidence for ev in hypothesis.evidence)
         if gen_score is None:
             gen_score = 0.5
-        if gen_score < consumer.min_confidence:
-            findings.append(f"insufficient_confidence:{gen_score:.2f}<{consumer.min_confidence:.2f}")
-            return ValidationResult(
-                entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-                status=ValidationStatus.FAILED, findings=tuple(findings), decision_ready=False
-            )
 
-        # 5. Topology requirement
-        if consumer.require_topology_consistency:
-            findings.append("topology_consistency_not_attested")
-            return ValidationResult(
-                entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-                status=ValidationStatus.WARNED, findings=tuple(findings), decision_ready=False
-            )
-
-        # Warnings check
-        has_warnings = any(r.status == ValidationStatus.WARNED for r in gate_results)
-        if has_warnings or disposition == FinalDisposition.PROVISIONAL:
-            return ValidationResult(
-                entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-                status=ValidationStatus.WARNED, findings=tuple(findings), decision_ready=True
-            )
-
-        return ValidationResult(
-            entity_id=entity_id, validator=f"DecisionReadinessGate/{consumer.name}",
-            status=ValidationStatus.PASSED, findings=(), decision_ready=True
+        facts = {
+            "disposition": disposition.value,
+            "allow_provisional": consumer.allow_provisional,
+            "confidence_ok": gen_score >= consumer.min_confidence,
+            "has_warnings": any(
+                r.status == ValidationStatus.WARNED for r in gate_results
+            ),
+        }
+        return _outcome_to_result(
+            evaluate_spec(readiness_spec_for(consumer), facts),
+            entity_id, validator,
         )
 
 
