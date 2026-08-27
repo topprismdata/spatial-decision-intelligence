@@ -5,6 +5,10 @@ step is a typed, hash-chained transition (INV-1 legality), the log is
 append-only and tamper-evident (INV-2), publication requires a complete
 evidence chain (INV-3), and re-execution must reproduce recorded digests
 (INV-4). Wall-clock time is injected via Clock and never affects digests.
+
+Proposal 1 integration: each run also builds a DispositionLedger (INV-5..8);
+the derived disposition is recorded in the AUDIT/PUBLISH/FAIL_CLOSE event
+payloads and verified (monotone + zero-false-trust) before publication.
 """
 
 from __future__ import annotations
@@ -17,6 +21,12 @@ from src.agents.entity_resolution_agent import EntityResolutionAgent, ResolvedEn
 from src.agents.boundary_reasoning_agent import BoundaryReasoningAgent, BoundaryConstraints
 from src.agents.geometry_generation_agent import GeometryGenerationAgent, GeometryGenerationResult
 from src.agents.geometry_qa_agent import GeometryQAAgent, QAAuditResult
+from src.domain.disposition import (
+    Disposition,
+    DispositionLedger,
+    EvidenceItem,
+    EvidenceKind,
+)
 from src.domain.state_machine import (
     LiveClock,
     ReplayClock,
@@ -34,6 +44,10 @@ logger = logging.getLogger("spatial_agent_platform")
 DEFAULT_LNG = 116.40
 DEFAULT_LAT = 39.90
 
+#: Evidence categories the publish gate demands coverage of. Anchored on the
+#: two refs every publish carries (OBS: geometry, QA: audit status).
+REQUIRED_CATEGORIES = frozenset({"GEOMETRY", "AUDIT"})
+
 
 @dataclass
 class SpatialGenerationPipelineResult:
@@ -45,6 +59,7 @@ class SpatialGenerationPipelineResult:
     is_decision_ready: bool
     execution_trace: List[str] = field(default_factory=list)
     transition_log: Optional[TransitionLog] = None
+    disposition_ledger: Optional[DispositionLedger] = None
 
 
 class SpatialIntelligencePlatform:
@@ -182,9 +197,37 @@ class SpatialIntelligencePlatform:
         )
         validation_status = qa_audit.geometry_observation.validation_status.value
         approved = validation_status in ("VERIFIED_VALID", "REPAIRED_AUTO")
-        # Evidence anchor: the geometry observation (method, qa_score, status)
-        # plus any quality findings. A clean geometry still carries its
-        # observation as evidence - INV-3 is satisfiable for every publish.
+
+        # Disposition ledger (INV-5..8): evidence anchored on the observation
+        # and the audit status; CRITICAL findings refute; WARNING findings are
+        # supporting-but-not-required annotations.
+        ledger = DispositionLedger(
+            entity_id=qa_audit.entity.entity_id,
+            required_categories=REQUIRED_CATEGORIES,
+            clock=self.clock,
+        )
+        ledger.append(EvidenceItem(
+            evidence_id=f"OBS:{qa_audit.geometry_observation.observation_id}",
+            kind=EvidenceKind.SUPPORTING,
+            category="GEOMETRY",
+            note=f"method={chosen.method} area_m2={chosen.area_m2:.1f}",
+        ))
+        ledger.append(EvidenceItem(
+            evidence_id=f"QA:{validation_status}:{qa_audit.geometry_observation.qa_score:.4f}",
+            kind=EvidenceKind.SUPPORTING if approved else EvidenceKind.REFUTING,
+            category="AUDIT",
+            note=f"validation_status={validation_status}",
+        ))
+        for f in qa_audit.findings:
+            refuting = f.severity.value == "CRITICAL"
+            ledger.append(EvidenceItem(
+                evidence_id=f.finding_id,
+                kind=EvidenceKind.REFUTING if refuting else EvidenceKind.SUPPORTING,
+                category="FINDING",
+                note=f.category,
+            ))
+
+        # Evidence refs for the transition chain (unchanged semantics).
         evidence_refs: tuple = (
             f"OBS:{qa_audit.geometry_observation.observation_id}",
             f"QA:{validation_status}:{qa_audit.geometry_observation.qa_score:.4f}",
@@ -209,13 +252,25 @@ class SpatialIntelligencePlatform:
             payload={"validation_status": validation_status,
                      "qa_score": qa_audit.geometry_observation.qa_score,
                      "is_decision_ready": qa_audit.is_decision_ready,
+                     "disposition": ledger.disposition.value,
                      "findings": [f.finding_id for f in qa_audit.findings]},
             clock=self.clock.now_iso(),
         )
-        trace.append(f"Agent 4 (QA): {qa_audit.decision_summary}")
+        trace.append(
+            f"Agent 4 (QA): {qa_audit.decision_summary} | "
+            f"Disposition={ledger.disposition.value}"
+        )
 
-        # Governance: publish to world model, or fail closed.
+        # Governance: verify the ledger, then publish or fail closed.
+        ledger.verify_monotone()
+        ledger.verify_zero_false_trust()
         if approved:
+            if ledger.disposition is not Disposition.TRUSTED:
+                # INV-8 hard stop: approval without earned trust is a bug.
+                raise AssertionError(
+                    f"approved run but disposition={ledger.disposition.value} "
+                    f"(required={sorted(REQUIRED_CATEGORIES)})"
+                )
             ev5 = log.append(
                 transition=Transition.PUBLISH,
                 agent="Governor",
@@ -224,11 +279,12 @@ class SpatialIntelligencePlatform:
                 outputs_digest=artifact_digest(ent_record),
                 evidence_refs=evidence_refs,
                 payload={"observation_id": qa_audit.geometry_observation.observation_id,
-                         "entity_id": qa_audit.entity.entity_id},
+                         "entity_id": qa_audit.entity.entity_id,
+                         "disposition": ledger.disposition.value},
                 clock=self.clock.now_iso(),
             )
             trace.append(
-                f"Governor: PUBLISHED with evidence chain "
+                f"Governor: PUBLISHED (disposition=TRUSTED) with evidence chain "
                 f"[{', '.join(evidence_refs[:2])}{'...' if len(evidence_refs) > 2 else ''}]"
             )
         else:
@@ -240,11 +296,13 @@ class SpatialIntelligencePlatform:
                 outputs_digest=artifact_digest(ent_record),
                 evidence_refs=evidence_refs,
                 payload={"reason": f"QA {validation_status}",
-                         "entity_id": qa_audit.entity.entity_id},
+                         "entity_id": qa_audit.entity.entity_id,
+                         "disposition": ledger.disposition.value},
                 clock=self.clock.now_iso(),
             )
             trace.append(
-                f"Governor: FAIL_CLOSED ({validation_status}) - never published"
+                f"Governor: FAIL_CLOSED ({validation_status}, "
+                f"disposition={ledger.disposition.value}) - never published"
             )
 
         # INV-4: compare against a recorded chain if provided.
@@ -260,6 +318,7 @@ class SpatialIntelligencePlatform:
             is_decision_ready=qa_audit.is_decision_ready,
             execution_trace=trace,
             transition_log=log,
+            disposition_ledger=ledger,
         )
 
     @staticmethod
@@ -293,8 +352,7 @@ class SpatialIntelligencePlatform:
     ) -> TrustedSpatialState:
         """Batch processes spatial briefs and compiles them into a
         TrustedSpatialState. Only runs whose transition chain reached
-        PUBLISHED enter the world model; fail-closed runs are counted and
-        their evidence chains preserved in findings."""
+        PUBLISHED enter the world model; fail-closed runs are excluded."""
         entities: Dict[str, SpatialEntity] = {}
         geometries: Dict[str, GeometryObservation] = {}
         all_findings = []
