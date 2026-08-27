@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
+
 
 
 @dataclass(frozen=True)
@@ -81,8 +83,20 @@ POI_MAP = {
 }
 
 
-def classify_landuse(fclass: str) -> str:
-    """landuse fclass → 分类码."""
+def _sporty_name(name: str) -> bool:
+    return bool(re.search(r"体育|运动|球场|场馆|健身|竞技", name or ""))
+
+
+def classify_landuse(fclass: str, name: str = "") -> str:
+    """landuse fclass + name → 分类码.
+
+    Root-cause fix (R15 audit): OSM mappers tag whole sports-park parcels
+    as generic `park` even when they contain stadiums/pitches (e.g.
+    回龙观体育公园 = A4 体育用地, not G 绿地). Name evidence outranks the
+    generic landuse tag for the park-family classes.
+    """
+    if fclass in ("park", "grass", "scrub", "recreation_ground") and _sporty_name(name):
+        return "A4"
     return LANDUSE_MAP.get(fclass, "U")
 
 
