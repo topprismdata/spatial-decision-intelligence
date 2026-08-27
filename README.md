@@ -189,8 +189,8 @@ pip install -e .
 
 ```bash
 # Execute 4-Agent reasoning pipeline for a community brief
-spatial-di generate "万科星河湾二期" \
-  --address "朝阳北路88号" \
+spatial-di generate "Vanke Xinghewan Phase 2" \
+  --address "88 Chaoyang North Rd" \
   --lng 116.452 \
   --lat 39.921 \
   --area 32000 \
@@ -231,110 +231,94 @@ open outputs/interactive_inspector.html
 
 ## 9. Beijing Residential Open-Data Benchmark (R0–R13)
 
-> **目标：** 仅使用免费开放数据，评估北京住宅空间实体发现、边界重建与可信状态发布能力。
-> **状态：** R0–R13 全部闭环，24 个可行动失败域 100% 解决。 [完整报告](docs/final-progress-report-r0-r13.md)
+> **Goal:** assess discovery, boundary reconstruction, and trusted-state publication for Beijing residential entities using free open data only.
+> **Status:** R0–R13 fully closed; 24 actionable failure domains 100% resolved. [Full report](docs/final-progress-report-r0-r13.md)
 
-### 核心成果
+### Headline Results
 
-| 指标 | 值 |
+| Metric | Value |
 |:---|:---|
-| 基准 Case | 30 个北京真实住宅 (BJ-RS-0001 ~ BJ-RS-0030) |
-| 备用 Case | 12 个 |
-| 实验运行 | 360 次 Primary Runs (30 Case × 12 实验) |
-| 数据源 | Geofabrik OSM (11,227 住宅多边形), Overture, Microsoft Buildings |
-| 失败域消解 | 24 个可行动 → **0 个** |
-| 误报可信 | 0 (False Trusted = 0) |
+| Benchmark cases | 30 real Beijing residential compounds (BJ-RS-0001 ~ BJ-RS-0030) |
+| Reserve cases | 12 |
+| Experiment runs | 360 primary runs (30 cases x 12 experiments) |
+| Data sources | Geofabrik OSM (11,227 residential polygons), Overture, Microsoft Buildings |
+| Failure domains | 24 actionable -> **0** |
+| False-trusted rate | **0** |
 
-### 在线交互地图（GitHub Pages）
+### Iteration Phases
 
-**[🌐 打开交互地图：回龙观城市建设分类 + 小区画像](https://topprismdata.github.io/spatial-decision-intelligence/interactive_map.html)**
-
-- GB50137 九大类 651 地块全量标记（居住/商业/办公/工业/教育/医疗/体育/公园/交通）
-- 点击地块查看：类别、户数、挂牌均价、医院等级、建成年代
-- 双底图切换：OSM（对齐）/ 高德
-- 离线版：[`docs/offline.html`](https://topprismdata.github.io/spatial-decision-intelligence/offline.html)（260KB 单文件，无需联网）
-
-![回龙观住宅用地围栏](docs/huilongguan_polygons.png)
-
-*基于 Geofabrik OSM 数据，181 个有名称住宅用地 + 9 个无名称地块。彩色多边形为有名称住宅用地，灰色为无名称地块。*
-
-### 迭代阶段
-
-| 阶段 | 内容 | 状态 |
+| Phase | Scope | Status |
 |:---|:---|:---:|
-| R0 | 纠偏与成熟度评估 | ✅ |
-| R1 | Metric CRS (EPSG:32650 UTM 50N) | ✅ |
-| R2 | 4 个 Baseline Provider | ✅ |
-| R3 | Validation Gate (4 Gate) | ✅ |
-| R4 | 30-Case 选择与盲审 | ✅ |
-| R5 | Gold Adjudication (G1–G8) | ✅ |
-| R6 | B0–B7 Open-Data Benchmark (360 runs) | ✅ |
-| R7 | Failure Analysis (D1–D8) | ✅ |
-| R8 | Road Semantics (VLM verified) | ✅ |
-| R9 | Building Membership (evidence-driven) | ✅ |
-| R10 | Targeted Re-benchmark | ✅ |
-| R11 | Shared Topology (evidence-aware) | ✅ |
-| R12 | Entity Resolution (hierarchy disambiguation) | ✅ |
-| R13 | Candidate Generation (full data coverage) | ✅ |
+| R0 | Correction & maturity assessment | done |
+| R1 | Metric CRS (EPSG:32650 UTM 50N) | done |
+| R2 | 4 baseline providers | done |
+| R3 | Validation gates (4 gates) | done |
+| R4 | 30-case selection & blind review | done |
+| R5 | Gold adjudication (G1-G8) | done |
+| R6 | B0-B7 open-data benchmark (360 runs) | done |
+| R7 | Failure analysis (D1-D8) | done |
+| R8 | Road semantics (VLM-verified) | done |
+| R9 | Building membership (evidence-driven) | done |
+| R10 | Targeted re-benchmark | done |
+| R11 | Shared topology (evidence-aware) | done |
+| R12 | Entity resolution (hierarchy disambiguation) | done |
+| R13 | Candidate generation (full data coverage) | done |
 
-### R14 规划（文献驱动优化，已立项）
+### R14 Plan (Literature-Driven Optimization)
 
-基于 8 维度学术文献普查的 Top-5 优化清单（详见 [R14 提案](docs/r14-lit-review-optimization-proposal.md)）：
+Top-5 candidates from an 8-dimension literature survey (see the [R14 proposal](docs/r14-lit-review-optimization-proposal.md)):
 
-| # | 改进 | 收益 | 复杂度 |
+| # | Improvement | Expected gain | Complexity |
 |:-:|:---|:---|:-:|
-| P1 | 凸包 → Alpha shape (concave hull) | L 形小区 IoU 上限 0.65 → 0.85 | M |
-| P2 | 高德覆盖基准 Gate（无名 + 无 POI ⇒ REJECTED） | 消除 ~4,900 农地误标 | S |
-| P3 | 启发式排序 → Dempster-Shafer 证据融合 | False Trusted 数学保证 | L |
-| P4 | 共享边修复 → Planar Partition 重建 | watertight 输出 | L |
-| P5 | 层级解析 + Amap gazetteer 校验 | 同名 Phase 歧义消解 | S |
+| P1 | Convex hull -> alpha shape / concave hull | L-shaped-compound IoU ceiling 0.65 -> 0.85 | M |
+| P2 | Commercial-coverage gate (unnamed + no POI => REJECTED) | removes ~4,900 farmland mislabels | S |
+| P3 | Heuristic ranking -> Dempster-Shafer evidence fusion | mathematical false-trusted bound | L |
+| P4 | Shared-edge repair -> planar-partition reconstruction | watertight output | L |
+| P5 | Hierarchy resolution + commercial gazetteer validation | same-name phase disambiguation | S |
 
-**全量实测 (2026-08-27)：** 北京 11,227 个 OSM 住宅用地已跑通 4-Provider Pipeline（874s / 0 错误），Amap 补名 +285 个，最终可信围栏 ~6,600 个。
+**Full-scale measurement (2026-08-27):** all 11,227 Beijing OSM residential polygons ran through the 4-provider pipeline (874 s / 0 errors); commercial-API enrichment added 285 names; ~6,600 trusted fences published.
 
-### 数据源
+### Data Sources
 
-| 来源 | 用途 | 许可证 |
+| Source | Used for | License |
 |:---|:---|:---|
-| Geofabrik OSM Beijing | 道路、建筑、土地利用 | ODbL |
-| Overture Maps | 建筑、交通、场所 | 按主题 |
-| Microsoft Buildings | 建筑 footprint | CDLA Permissive 2.0 |
+| Geofabrik OSM Beijing | roads, buildings, land use | ODbL |
+| Overture Maps | buildings, transport, places | per-theme |
+| Microsoft Buildings | building footprints | CDLA Permissive 2.0 |
 
 ---
 
-## 10. 北京 A 级景区 + 学校围栏
+## 10. Beijing Schools & A-Level Scenic Areas
 
-### 北京学校围栏 (2,814 所)
+### Beijing School Fences (2,814)
 
-**[🌐 在线查看：北京学校围栏地图](https://topprismdata.github.io/spatial-decision-intelligence/schools_map.html)**
+Built from the Geofabrik OSM `pois_a` education layer; every school is a
+precise polygon fence (not a point marker):
 
-基于 Geofabrik OSM `pois_a` 教育类面层，所有学校均为精确 Polygon 围栏（非点标记）：
-
-| 类型 | 数量 |
+| Type | Count |
 |:---|---:|
-| 中小学 | 1,878 |
-| 幼儿园 | 605 |
-| 大学 | 173 |
-| 学院 | 158 |
-| **合计** | **2,814** |
+| Primary & secondary schools | 1,878 |
+| Kindergartens | 605 |
+| Universities | 173 |
+| Colleges | 158 |
+| **Total** | **2,814** |
 
-点击地块查看：名称、类型、面积。按面积从大到小渲染。
+### Beijing A-Level Scenic Area Boundaries (189)
 
-### 北京 A 级景区边界 (189 个)
-
-**[🌐 打开景区地图](https://topprismdata.github.io/spatial-decision-intelligence/scenic_spots_map.html)**
-
-- 204 条名录，180 个定位成功（88%）
-- 边界来源：OSM 面匹配 (66) / 卫星+路网构造 (123)
-- **已知问题：** CONSTRUCTED 边界为近似范围（IoU ~0.4），已标注 KNOWN_ISSUE
+- 204 roster entries; 180 geocoded (88%)
+- Boundary sources: OSM face match (66) / satellite + road-network construction (123)
+- **Known issue:** CONSTRUCTED boundaries are approximations (IoU ~0.4), flagged KNOWN_ISSUE in the world model
 
 ---
 
-## 合规声明
+## Compliance Statement
 
-本项目所有地理数据文件（GeoJSON、Shapefile、CSV）**不包含在本仓库中**。
+This repository contains **no geographic data files** (GeoJSON, Shapefile, CSV, map HTML, or imagery).
 
-数据来源为 [OpenStreetMap](https://www.openstreetmap.org/copyright)（ODbL 许可）及公开 POI 接口。
-坐标精度约 100m，不含军事设施、涉密区域或高精度测绘成果。
+Data sources are [OpenStreetMap](https://www.openstreetmap.org/copyright) (ODbL) and public POI interfaces.
+Published coordinates are reduced to ~100 m precision; no military sites, sensitive areas, or high-precision
+surveying products are included.
 
-本仓库仅包含算法源代码和技术文档，用于技术演示与学术研究用途。
-实际使用请遵守《中华人民共和国测绘法》《地图管理条例》及所在地区相关法律法规。
+The repository contains algorithm source code and technical documentation only, for technical demonstration and
+academic research. Any operational use must comply with the PRC Surveying and Mapping Law, the Map Management
+Regulations, and other applicable local laws and regulations.

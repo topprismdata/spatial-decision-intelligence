@@ -53,3 +53,9 @@ outputs/*.pt
 *.cpg
 outputs/
 docs/archive_zh/
+
+# never track geographic artifacts under docs/
+docs/*.html
+docs/*.png
+docs/*.jpg
+docs/screenshots/
