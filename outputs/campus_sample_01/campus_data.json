@@ -143,101 +143,145 @@
   "poi_membership_results": [
     {
       "name": "人大通州校区嘉园食堂",
-      "membership": "IN_CAMPUS",
-      "expected": "IN_CAMPUS",
-      "match": "✓",
-      "reason": "校内距边界212m"
-    },
-    {
-      "name": "人大通州校区禾园食堂",
-      "membership": "IN_CAMPUS",
-      "expected": "IN_CAMPUS",
-      "match": "✓",
-      "reason": "校内距边界345m"
-    },
-    {
-      "name": "人大通州校区丰园食堂",
+      "type": "食堂",
+      "lng": 116.7429,
+      "lat": 39.9074,
       "membership": "AMBIGUOUS",
       "expected": "IN_CAMPUS",
       "match": "⚠",
-      "reason": "校内距边界122m"
+      "reason": "校内距围墙170m"
+    },
+    {
+      "name": "人大通州校区禾园食堂",
+      "type": "食堂",
+      "lng": 116.736,
+      "lat": 39.9048,
+      "membership": "IN_CAMPUS",
+      "expected": "IN_CAMPUS",
+      "match": "✓",
+      "reason": "校内距围墙272m"
+    },
+    {
+      "name": "人大通州校区丰园食堂",
+      "type": "食堂",
+      "lng": 116.7367,
+      "lat": 39.9082,
+      "membership": "AMBIGUOUS",
+      "expected": "IN_CAMPUS",
+      "match": "⚠",
+      "reason": "校内距围墙110m"
     },
     {
       "name": "地铁便利(潞城站)",
+      "type": "便利店",
+      "lng": 116.7411,
+      "lat": 39.901,
       "membership": "AMBIGUOUS",
       "expected": "AMBIGUOUS",
       "match": "✓",
-      "reason": "校外距边界67m"
+      "reason": "校外距围墙115m"
     },
     {
       "name": "Grid Coffee 通州万象汇店",
+      "type": "咖啡厅",
+      "lng": 116.7288,
+      "lat": 39.9032,
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距边界456m"
+      "reason": "校外距围墙447m"
     },
     {
       "name": "瑞幸咖啡(首开万象汇店)",
+      "type": "咖啡厅",
+      "lng": 116.7287,
+      "lat": 39.9035,
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距边界468m"
+      "reason": "校外距围墙459m"
     },
     {
       "name": "星巴克(北投大厦店)",
+      "type": "咖啡厅",
+      "lng": 116.7322,
+      "lat": 39.9058,
       "membership": "AMBIGUOUS",
       "expected": "AMBIGUOUS",
       "match": "✓",
-      "reason": "校外距边界78m"
+      "reason": "校外距围墙123m"
     },
     {
       "name": "家家悦(首开万象汇店)",
+      "type": "超市",
+      "lng": 116.7276,
+      "lat": 39.9036,
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距边界590m"
+      "reason": "校外距围墙581m"
     },
     {
       "name": "7-ELEVEn(首开万象汇店)",
+      "type": "便利店",
+      "lng": 116.729,
+      "lat": 39.903,
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距边界434m"
+      "reason": "校外距围墙425m"
     },
     {
       "name": "天源超市",
+      "type": "",
+      "lng": 116.7384,
+      "lat": 39.8995,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗ MISMATCH",
-      "reason": "校外距边界234m"
+      "match": "✗",
+      "reason": "校外距围墙283m"
     },
     {
       "name": "庆鑫便利店",
+      "type": "",
+      "lng": 116.7398,
+      "lat": 39.8978,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗ MISMATCH",
-      "reason": "校外距边界423m"
+      "match": "✗",
+      "reason": "校外距围墙489m"
     },
     {
       "name": "鑫大地生活超市(副中心)",
+      "type": "",
+      "lng": 116.726,
+      "lat": 39.9115,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗ MISMATCH",
-      "reason": "校外距边界806m"
+      "match": "✗",
+      "reason": "校外距围墙893m"
     },
     {
       "name": "北京祥运达好药师",
+      "type": "",
+      "lng": 116.6949,
+      "lat": 39.8921,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗ MISMATCH",
-      "reason": "校外距边界4360m"
+      "match": "✗",
+      "reason": "校外距围墙4373m"
     },
     {
       "name": "玫瑰坊商业中心",
+      "type": "",
+      "lng": 116.6764,
+      "lat": 39.8798,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✗ MISMATCH",
-      "reason": "校外距边界6742m"
+      "match": "✗",
+      "reason": "校外距围墙6764m"
     }
-  ]
+  ],
+  "campus_polygon_wkt": "POLYGON ((116.7357502 39.9091945, 116.7356497 39.9090992, 116.7353537 39.9090904, 116.7352011 39.9091903, 116.7337344 39.9091984, 116.7336532 39.9091108, 116.7336226 39.9067031, 116.7336005 39.9060098...",
+  "polygon_source": "OSM way 645644236 amenity=school (46 nodes)"
 }
