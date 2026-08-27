@@ -63,3 +63,33 @@ def test_v1_test_exactly_8_was_stale_baseline():
     # 该断言在 R14 之前就已过期 (clean tree 上同样失败) — 这里以 v2 视角固化正确数.
     from src.domain.contracts import OntologyType
     assert len(OntologyType) == 14  # v1 frozen (含 OtherBuiltFeature); v2 只增用途层
+
+
+def test_audit_metrics_within_gates():
+    """回归门: 全量重跑的覆盖率/冲突率必须在阈值内 (防止规则库腐化)."""
+    import warnings
+    warnings.filterwarnings("ignore")
+    import geopandas as gpd
+    from collections import Counter
+    from src.classification.label_hygiene import LabelHygienePipeline, LabelStatus
+
+    gdf = gpd.read_file("outputs/huilongguan_demo/huilongguan_landuse_gb50137_enriched.geojson")
+    amap = {}
+    for _, r in gdf[gdf.Class == "EDUCATION"].iterrows():
+        n = str(r["Name"] or "")
+        if n and str(r.grade) in ("高校", "中学", "小学", "幼儿园"):
+            amap[n[:6]] = "A3"
+    records = LabelHygienePipeline(amap_types=amap).run(gdf)
+
+    st = Counter(r.label_status.value for r in records)
+    total = len(records)
+    # 覆盖率: 非 U 占比 ≥ 97% (7 个 military/farmland 预期保留)
+    unclassified = st.get("TRUSTED_TAG", 0)  # 占位, 真正指标在下方
+    codes = Counter(r.gb_code for r in records)
+    coverage = 1 - codes.get("U", 0) / total
+    assert coverage >= 0.97, f"覆盖率 {coverage:.1%} < 97%"
+    # 冲突率: AMBIGUOUS 必须为 0
+    assert st.get("AMBIGUOUS", 0) == 0, "存在未决冲突"
+    # 体育公园回归守卫: 必须 A4 + NAME_OVERRIDE
+    sp = [r for r in records if r.name == "回龙观体育公园"][0]
+    assert sp.gb_code == "A4" and sp.label_status == LabelStatus.NAME_OVERRIDE
