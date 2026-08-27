@@ -71,3 +71,42 @@ SCNet Token Plan 部署的 GLM-5.2 为**纯文本推理版**，不含 vision 权
 
 ### 人工截图备份
 所有 5A 景区已生成带边界叠加的浏览器截图（`docs/screenshots/scenic/`），供必要时人工比对。
+
+---
+
+## 八、高德静态图层获取方案（2026-08-27 实测通过）
+
+### 免费匿名可用的瓦片端点
+
+| 图层 | style | URL 模板 | 分辨率 | 说明 |
+|:---|:-:|:---|:-:|:---|
+| **卫星影像** | 6 | `https://webst0{1-4}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}` | 256×256 | 真实卫星影像 |
+| 道路图层 | 7 | 同上, style=7 | 256×256 | 仅路网 |
+| **标注+道路+底图** | 8 | 同上, style=8 | 256×256 | 混合图层 (含中文标注) |
+
+子域 webst01-04 负载均衡；请求需带 `Referer: https://amap.com`（防爬）。无 key、无限速 (实测)。
+
+### 坐标系说明
+- 高德瓦片的 x/y 是**GCJ-02 墨卡托投影**
+- 我们 GeoJSON 的边界是 WGS-84 → 需要先转 GCJ-02 再算 tile 编号，否则偏移 ~500m
+
+### 应用：免费生成景区卫星影像对比截图
+
+```python
+def deg2num(lat,lng,z):
+    lat_rad=math.radians(lat); n=2**z
+    return int((lng+180)/360*n), int((1-math.log(math.tan(lat_rad)+1/math.cos(lat_rad))/math.pi)/2*n)
+x,y=deg2num(39.9169,116.3972,15)
+url=f"https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z=15"
+```
+
+3×3 tile 拼接即可得到故宫周边 700m 高清影像 ✓。zoom 17 可看清单体建筑。
+
+### 获取示例 — 故宫 z17 卫星 + 标注层 实测通过
+
+| 图层 | 状态 |
+|:---|:-:|
+| 卫星影像 style=6, z=15/17 | ✅ 200 |
+| 标注图层 style=8, z=17 | ✅ 200 |
+| 道路 style=7 | ✅ |
+| 静态地图 staticmap API | ❌ 需要 Web服务 key (免费的也不行) |
