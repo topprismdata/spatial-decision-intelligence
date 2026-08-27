@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              116.748,
+              39.9016
+            ],
+            [
+              116.748,
+              39.9093
+            ],
+            [
+              116.7329,
+              39.9093
+            ],
+            [
+              116.7329,
+              39.9016
+            ],
+            [
+              116.748,
+              39.9016
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "中国人民大学通州校区",
+        "source": "road_bounds+official_desc",
+        "area_m2": 1440834,
+        "area_mu": 2161
+      }
+    }
+  ]
+}

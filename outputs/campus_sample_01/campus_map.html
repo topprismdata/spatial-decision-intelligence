@@ -1,0 +1,34 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Campus Sample 01: 人大通州校区</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>body{margin:0}#map{width:100vw;height:100vh}
+.lg{position:absolute;bottom:16px;right:16px;z-index:1000;background:white;padding:12px;
+border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.25);font-size:13px;line-height:1.8}</style></head>
+<body><div id="map"></div>
+<div class="lg"><b>人大通州校区 Campus Sample 01</b><br>
+<span style="color:#3498db">●</span> IN_CAMPUS (2)<br>
+<span style="color:#e74c3c">●</span> OUT_OF_CAMPUS (9)<br>
+<span style="color:#f39c12">●</span> AMBIGUOUS (3)<br>
+<small style="color:#888">正判 8/14 · KNOWN_ISSUE 标注保留<br>面积 ~144 ha (~2161 亩, 官方 1652)</small></div>
+<script>
+var map=L.map('map',{center:[39.9055,116.74],zoom:16,maxZoom:19});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.polygon([[39.9093,116.7329],[39.9093,116.748],[39.9016,116.748],[39.9016,116.7329]],{color:'#2ecc71',weight:3,fillOpacity:0.08}).addTo(map).bindPopup('<b>人大通州校区</b><br>官方1652亩');
+
+L.circleMarker([39.9074,116.7429],{radius:8,color:'#3498db',fillColor:'#3498db',fillOpacity:0.85}).addTo(map).bindPopup('<b>人大通州校区嘉园食堂</b><br>IN_CAMPUS · <br>校内距边界212m');
+L.circleMarker([39.9048,116.736],{radius:8,color:'#3498db',fillColor:'#3498db',fillOpacity:0.85}).addTo(map).bindPopup('<b>人大通州校区禾园食堂</b><br>IN_CAMPUS · <br>校内距边界345m');
+L.circleMarker([39.9082,116.7367],{radius:8,color:'#f39c12',fillColor:'#f39c12',fillOpacity:0.85}).addTo(map).bindPopup('<b>人大通州校区丰园食堂</b><br>AMBIGUOUS · <br>校内距边界122m');
+L.circleMarker([39.901,116.7411],{radius:8,color:'#f39c12',fillColor:'#f39c12',fillOpacity:0.85}).addTo(map).bindPopup('<b>地铁便利(潞城站)</b><br>AMBIGUOUS · <br>校外距边界67m');
+L.circleMarker([39.9032,116.7288],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>Grid Coffee 通州万象汇店</b><br>OUT_OF_CAMPUS · <br>校外距边界456m');
+L.circleMarker([39.9035,116.7287],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>瑞幸咖啡(首开万象汇店)</b><br>OUT_OF_CAMPUS · <br>校外距边界468m');
+L.circleMarker([39.9058,116.7322],{radius:8,color:'#f39c12',fillColor:'#f39c12',fillOpacity:0.85}).addTo(map).bindPopup('<b>星巴克(北投大厦店)</b><br>AMBIGUOUS · <br>校外距边界78m');
+L.circleMarker([39.9036,116.7276],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>家家悦(首开万象汇店)</b><br>OUT_OF_CAMPUS · <br>校外距边界590m');
+L.circleMarker([39.903,116.729],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>7-ELEVEn(首开万象汇店)</b><br>OUT_OF_CAMPUS · <br>校外距边界434m');
+L.circleMarker([39.8995,116.7384],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>天源超市</b><br>OUT_OF_CAMPUS · <br>校外距边界234m');
+L.circleMarker([39.8978,116.7398],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>庆鑫便利店</b><br>OUT_OF_CAMPUS · <br>校外距边界423m');
+L.circleMarker([39.9115,116.726],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>鑫大地生活超市(副中心)</b><br>OUT_OF_CAMPUS · <br>校外距边界806m');
+L.circleMarker([39.8921,116.6949],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>北京祥运达好药师</b><br>OUT_OF_CAMPUS · <br>校外距边界4360m');
+L.circleMarker([39.8798,116.6764],{radius:8,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.85}).addTo(map).bindPopup('<b>玫瑰坊商业中心</b><br>OUT_OF_CAMPUS · <br>校外距边界6742m');
+
+</script></body></html>
