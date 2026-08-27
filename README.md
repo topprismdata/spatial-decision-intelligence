@@ -326,3 +326,15 @@ open outputs/interactive_inspector.html
 - 204 条名录，180 个定位成功（88%）
 - 边界来源：OSM 面匹配 (66) / 卫星+路网构造 (123)
 - **已知问题：** CONSTRUCTED 边界为近似范围（IoU ~0.4），已标注 KNOWN_ISSUE
+
+---
+
+## 合规声明
+
+本项目所有地理数据文件（GeoJSON、Shapefile、CSV）**不包含在本仓库中**。
+
+数据来源为 [OpenStreetMap](https://www.openstreetmap.org/copyright)（ODbL 许可）及公开 POI 接口。
+坐标精度约 100m，不含军事设施、涉密区域或高精度测绘成果。
+
+本仓库仅包含算法源代码和技术文档，用于技术演示与学术研究用途。
+实际使用请遵守《中华人民共和国测绘法》《地图管理条例》及所在地区相关法律法规。
