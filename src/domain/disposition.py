@@ -157,10 +157,15 @@ class DispositionLedger:
         entity_id: str,
         required_categories: FrozenSet[str],
         clock: Optional[object] = None,
+        algebra: Optional[object] = None,
     ) -> None:
+        """`algebra` is any object implementing the EvidenceAlgebra protocol
+        (duck-typed to avoid a circular import). None = the built-in
+        category-coverage rule (`evaluate`), the historical default."""
         self.entity_id = entity_id
         self.required_categories = frozenset(required_categories)
         self._clock = clock
+        self._algebra = algebra
         self.items: List[EvidenceItem] = []
         self.snapshots: List[DispositionSnapshot] = [
             DispositionSnapshot(
@@ -185,7 +190,7 @@ class DispositionLedger:
                 **{**item.__dict__, "recorded_at": self._clock.now_iso()}
             )
         self.items.append(stamped)
-        disp = evaluate(self.items, self.required_categories)
+        disp = self._compute(self.items)
         self.snapshots.append(
             DispositionSnapshot(
                 index=len(self.items),
@@ -196,9 +201,23 @@ class DispositionLedger:
         )
         return disp
 
+    def _compute(self, items: List[EvidenceItem]) -> Disposition:
+        """Disposition via the injected algebra, or the built-in rule."""
+        if self._algebra is not None:
+            return self._algebra.disposition(items, self.required_categories)
+        return evaluate(items, self.required_categories)
+
     @property
     def disposition(self) -> Disposition:
-        return evaluate(self.items, self.required_categories)
+        return self._compute(self.items)
+
+    def opinion(self):
+        """Current algebra opinion (DS: MassOpinion; heuristic: votes).
+        None when no algebra is injected and no notion of opinion exists."""
+        if self._algebra is None:
+            return None
+        return self._algebra.opinion_of(self.items) \
+            if hasattr(self._algebra, "opinion_of") else None
 
     def active_items(self) -> List[EvidenceItem]:
         return _active_items(self.items)
@@ -235,8 +254,6 @@ class DispositionLedger:
                     )
 
 
-    def to_records(self) -> List[dict]:
-        return [dict(it.__dict__) for it in self.items]
 
 
     def verify_zero_false_trust(self) -> None:
@@ -245,8 +262,7 @@ class DispositionLedger:
         required categories."""
         for snap in self.snapshots:
             if snap.disposition is Disposition.TRUSTED:
-                recomputed = evaluate(self.items[: snap.index],
-                                      self.required_categories)
+                recomputed = self._compute(self.items[: snap.index])
                 if recomputed is not Disposition.TRUSTED:
                     raise ZeroFalseTrustError(
                         f"{self.entity_id}: snapshot @{snap.index} claims "
