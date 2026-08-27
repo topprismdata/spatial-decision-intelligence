@@ -23,6 +23,8 @@ from src.domain.contracts import (
     ValidationStatus,
 )
 from src.coordinate.metric_service import MetricGeometryService
+from src.validation.external_coverage_gate import ExternalCoverageGate, PolygonContext
+
 
 
 class FinalDisposition(str, Enum):
@@ -284,11 +286,25 @@ class DecisionReadinessGate:
 
 
 class ValidationPipeline:
-    def __init__(self, metric_service: Optional[MetricGeometryService] = None):
+    """Core 3-gate pipeline with optional R14-P2 external coverage gate.
+
+    Args:
+        metric_service: metric CRS service for GeometryGate.
+        coverage_gate: optional ExternalCoverageGate (R14-P2). When wired,
+            its verdict participates in FinalDisposition resolution; a BLOCKED
+            finding rejects unnamed POI-less polygons outright.
+    """
+
+    def __init__(
+        self,
+        metric_service: Optional[MetricGeometryService] = None,
+        coverage_gate: Optional["ExternalCoverageGate"] = None,
+    ):
         self.ontology_gate = OntologyGate()
         self.geometry_gate = GeometryGate(metric_service)
         self.evidence_gate = EvidenceGate()
         self.decision_readiness_gate = DecisionReadinessGate()
+        self.coverage_gate = coverage_gate
 
     @staticmethod
     def resolve_final_disposition(gate_results: Sequence[ValidationResult]) -> FinalDisposition:
@@ -324,6 +340,7 @@ class ValidationPipeline:
         hypothesis: BoundaryHypothesis,
         boundary_role: str = "PHYSICAL_BOUNDARY",
         consumers: Sequence[ConsumerProfile] = (PROFILE_VISIT_CHECKIN, PROFILE_TERRITORY_OPTIMIZATION),
+        polygon_context: Optional["PolygonContext"] = None,
     ) -> tuple[list[ValidationResult], FinalDisposition, dict[str, ConsumerDecision]]:
         # 1. Run Core Validation Gates
         core_results = [
@@ -331,6 +348,10 @@ class ValidationPipeline:
             self.geometry_gate.validate(hypothesis),
             self.evidence_gate.validate(hypothesis),
         ]
+
+        # 1b. R14-P2 external coverage gate (opt-in via constructor wiring).
+        if self.coverage_gate is not None and polygon_context is not None:
+            core_results.append(self.coverage_gate.validate(polygon_context, hypothesis))
 
         # 2. Resolve Objective FinalDisposition
         disposition = self.resolve_final_disposition(core_results)

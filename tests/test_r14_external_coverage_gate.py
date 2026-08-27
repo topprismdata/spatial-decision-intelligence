@@ -87,3 +87,43 @@ class TestExternalCoverageGate:
 
         assert gate.validate(farmland).status == ValidationStatus.BLOCKED
         assert gate.validate(compound).status == ValidationStatus.WARNED
+
+
+class TestPipelineIntegration:
+    """R14-P2 wiring: coverage gate participates via ValidationPipeline.run."""
+
+    def _make_hypothesis(self):
+        from src.domain.contracts import BoundaryHypothesis
+        return BoundaryHypothesis(
+            entity_id="test-entity",
+            geometry="POLYGON((116.3 40.0, 116.31 40.0, 116.31 40.01, 116.3 40.01, 116.3 40.0))",
+            generator="TestProvider",
+        )
+
+    def _run(self, ctx, provider):
+        from src.validation.pipeline import ValidationPipeline
+        from src.domain.contracts import OntologyType
+        gate = ExternalCoverageGate(poi_provider=provider) if provider else None
+        pipe = ValidationPipeline(coverage_gate=gate)
+        return pipe.run(OntologyType.RESIDENTIAL_COMPOUND, self._make_hypothesis(),
+                        polygon_context=ctx)
+
+    def test_blocked_context_yields_rejected(self):
+        from src.validation.pipeline import FinalDisposition, ConsumerDecision
+        farmland = PolygonContext(osm_name="", centroid_lng=116.7827, centroid_lat=40.3442)
+        _, disposition, consumer = self._run(farmland, _StaticProvider(hits=[]))
+        assert disposition == FinalDisposition.REJECTED
+        assert all(d == ConsumerDecision.NOT_READY for d in consumer.values())
+
+    def test_no_coverage_gate_back_compat(self):
+        from src.validation.pipeline import FinalDisposition
+        farmland = PolygonContext(osm_name="", centroid_lng=116.7827, centroid_lat=40.3442)
+        _, disposition, _ = self._run(farmland, None)
+        assert disposition != FinalDisposition.REJECTED  # unchanged legacy path
+
+    def test_named_polygon_full_pass(self):
+        from src.validation.pipeline import FinalDisposition
+        named = PolygonContext(osm_name="龙腾苑二区", centroid_lng=116.33, centroid_lat=40.07)
+        results, disposition, _ = self._run(named, _StaticProvider(hits=[]))
+        assert any(r.validator == "ExternalCoverageGate" and r.status == ValidationStatus.PASSED
+                   for r in results)
