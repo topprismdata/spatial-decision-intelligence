@@ -149,7 +149,8 @@
       "membership": "IN_CAMPUS",
       "expected": "IN_CAMPUS",
       "match": "✓",
-      "reason": "校内距围墙170m",
+      "confidence": "HIGH",
+      "reason": "E1:name[通州校区]",
       "dist_to_boundary_m": 170
     },
     {
@@ -160,7 +161,8 @@
       "membership": "IN_CAMPUS",
       "expected": "IN_CAMPUS",
       "match": "✓",
-      "reason": "校内距围墙272m",
+      "confidence": "HIGH",
+      "reason": "E1:name[通州校区]",
       "dist_to_boundary_m": 272
     },
     {
@@ -168,10 +170,11 @@
       "type": "食堂",
       "lng": 116.7367,
       "lat": 39.9082,
-      "membership": "AMBIGUOUS",
+      "membership": "IN_CAMPUS",
       "expected": "IN_CAMPUS",
-      "match": "⚠",
-      "reason": "校内距围墙110m",
+      "match": "✓",
+      "confidence": "HIGH",
+      "reason": "E1:name[通州校区]",
       "dist_to_boundary_m": 110
     },
     {
@@ -182,7 +185,8 @@
       "membership": "AMBIGUOUS",
       "expected": "AMBIGUOUS",
       "match": "✓",
-      "reason": "校外距围墙115m",
+      "confidence": "LOW",
+      "reason": "E3:near(115m)",
       "dist_to_boundary_m": 115
     },
     {
@@ -193,7 +197,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙447m",
+      "confidence": "HIGH",
+      "reason": "E3:far(447m)",
       "dist_to_boundary_m": 447
     },
     {
@@ -204,7 +209,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙459m",
+      "confidence": "HIGH",
+      "reason": "E3:far(459m)",
       "dist_to_boundary_m": 459
     },
     {
@@ -215,7 +221,8 @@
       "membership": "AMBIGUOUS",
       "expected": "AMBIGUOUS",
       "match": "✓",
-      "reason": "校外距围墙123m",
+      "confidence": "LOW",
+      "reason": "E3:near(123m)",
       "dist_to_boundary_m": 123
     },
     {
@@ -226,7 +233,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙581m",
+      "confidence": "HIGH",
+      "reason": "E3:far(581m)",
       "dist_to_boundary_m": 581
     },
     {
@@ -237,7 +245,8 @@
       "membership": "OUT_OF_CAMPUS",
       "expected": "OUT_OF_CAMPUS",
       "match": "✓",
-      "reason": "校外距围墙425m",
+      "confidence": "HIGH",
+      "reason": "E3:far(425m)",
       "dist_to_boundary_m": 425
     },
     {
@@ -247,8 +256,9 @@
       "lat": 39.8995,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✓",
-      "reason": "校外距围墙283m",
+      "match": "✗",
+      "confidence": "HIGH",
+      "reason": "E3:far(283m)",
       "dist_to_boundary_m": 283
     },
     {
@@ -258,8 +268,9 @@
       "lat": 39.8978,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✓",
-      "reason": "校外距围墙489m",
+      "match": "✗",
+      "confidence": "HIGH",
+      "reason": "E3:far(489m)",
       "dist_to_boundary_m": 489
     },
     {
@@ -269,8 +280,9 @@
       "lat": 39.9115,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✓",
-      "reason": "校外距围墙893m",
+      "match": "✗",
+      "confidence": "HIGH",
+      "reason": "E3:far(893m)",
       "dist_to_boundary_m": 893
     },
     {
@@ -280,8 +292,9 @@
       "lat": 39.8921,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✓",
-      "reason": "校外距围墙4373m",
+      "match": "✗",
+      "confidence": "HIGH",
+      "reason": "E3:far(4373m)",
       "dist_to_boundary_m": 4373
     },
     {
@@ -291,8 +304,9 @@
       "lat": 39.8798,
       "membership": "OUT_OF_CAMPUS",
       "expected": "",
-      "match": "✓",
-      "reason": "校外距围墙6764m",
+      "match": "✗",
+      "confidence": "HIGH",
+      "reason": "E3:far(6764m)",
       "dist_to_boundary_m": 6764
     }
   ],
