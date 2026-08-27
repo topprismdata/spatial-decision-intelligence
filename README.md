@@ -298,3 +298,31 @@ open outputs/interactive_inspector.html
 | Geofabrik OSM Beijing | 道路、建筑、土地利用 | ODbL |
 | Overture Maps | 建筑、交通、场所 | 按主题 |
 | Microsoft Buildings | 建筑 footprint | CDLA Permissive 2.0 |
+
+---
+
+## 10. 北京 A 级景区 + 学校围栏
+
+### 北京学校围栏 (2,814 所)
+
+**[🌐 在线查看：北京学校围栏地图](https://topprismdata.github.io/spatial-decision-intelligence/schools_map.html)**
+
+基于 Geofabrik OSM `pois_a` 教育类面层，所有学校均为精确 Polygon 围栏（非点标记）：
+
+| 类型 | 数量 |
+|:---|---:|
+| 中小学 | 1,878 |
+| 幼儿园 | 605 |
+| 大学 | 173 |
+| 学院 | 158 |
+| **合计** | **2,814** |
+
+点击地块查看：名称、类型、面积。按面积从大到小渲染。
+
+### 北京 A 级景区边界 (189 个)
+
+**[🌐 打开景区地图](https://topprismdata.github.io/spatial-decision-intelligence/scenic_spots_map.html)**
+
+- 204 条名录，180 个定位成功（88%）
+- 边界来源：OSM 面匹配 (66) / 卫星+路网构造 (123)
+- **已知问题：** CONSTRUCTED 边界为近似范围（IoU ~0.4），已标注 KNOWN_ISSUE
