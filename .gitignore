@@ -43,3 +43,12 @@ outputs/*.pt
 .idea/
 .vscode/
 *.swp
+
+# Geographic data — compliance with 测绘法: no raw geo data on public hosting
+*.geojson
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+outputs/
