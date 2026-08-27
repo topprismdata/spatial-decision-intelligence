@@ -274,7 +274,8 @@ class BuildingClusterProvider:
             for cluster_pts in clusters:
                 if len(cluster_pts) < 3:
                     continue
-                hull_geom = MultiPoint(cluster_pts).convex_hull
+                from src.geometry.concave_hull import hull_for_cluster
+                hull_geom = hull_for_cluster(cluster_pts) or MultiPoint(cluster_pts).convex_hull
                 if hull_geom.geom_type != "Polygon" or hull_geom.is_empty:
                     continue
                 if not hull_geom.intersects(seed_pt.buffer(uncertainty_deg)):
