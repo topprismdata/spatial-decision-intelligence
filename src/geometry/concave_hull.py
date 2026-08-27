@@ -97,6 +97,8 @@ def concave_hull(
             tri = Polygon([a, b, c])
             if tri.area <= 0:
                 continue
+            if len(ring) <= 4:
+                break
             new_ring = [p for idx, p in enumerate(ring) if idx != (i + 1) % n]
             new_poly = Polygon(new_ring)
             if not new_poly.is_valid or new_poly.area <= 0:
