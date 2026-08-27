@@ -75,3 +75,15 @@ P2 (S, 1天) ──► P5 (S, 1-2天) ──► P1 (M, 3-5天) ──► P3 (L) 
 ```
 
 P2/P5 合计 ~3 天即可让北京全量数据从" 11,227 原始多边形 "变成" 6,593 个可信小区围栏 "的产品可用形态。
+
+---
+
+## 五、自审修正 (2026-08-27，三轮审查后)
+
+实施 P1/P2/P5 后复审发现三处与提案原文不符：
+
+1. **P2 尚未接入主管线**：`ExternalCoverageGate` 是独立组件 + 单测，未编入 `ValidationPipeline.run()` 的 gate 序列。"立即止血"的说法仅在组件层面成立。
+2. **P5 gazetteer 数据弱于提案假设**：`amap_name_matches.csv` 实际无 pname/adname 字段（仅 osm_idx/grid_key/amap_name/address），`GazetteerRecord.district` 目前只能填 address 全文。同名 Phase 跨区消歧的"数据已在手"不成立，需补一次带行政区字段的 Amap 查询。
+3. **P1 收益被高估**：北京 30 样本实测（全量 134k 建筑参与），concave hull 仅在 58% (11/19) 案例中收紧凸包，面积比均值 0.914（非理想 0.6-0.7）；且 hull 对 OSM gold 多边形 IoU 均值仅 **0.35** —— 说明主要误差不在凸包形状，而在建筑簇对小区真实围合范围的覆盖偏差。P1 定性从"最大单点收益"降级为"中等收益"；真正提升 IoU 的路径是改进 cluster→boundary 的重建方法（对应 R14-P4 / Cadastral 文献路线）。
+
+另外修复一处审查发现的崩溃 bug：小环 (≤4 顶点) 时 `Polygon(new_ring)` 抛 `LinearRing requires at least 4 coordinates`，已加 guard 并提交 (`d9deb5f`)。

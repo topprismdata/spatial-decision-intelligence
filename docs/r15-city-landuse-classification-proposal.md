@@ -30,7 +30,7 @@ Geofabrik 北京全量数据可直接推导出的分类：
 | **B 商务办公** | `landuse=commercial` + `building=commercial` | 1,868 面 |
 | **M 工业** | `landuse=industrial` | 2,824 面 |
 | **G 公园绿地** | `park/grass/meadow/forest/orchard` | ~14,800 面 |
-| **A3 教育科研** | POI: school 1,929 + university 174 + college 162 + kindergarten 646 | ~2,900 点/面 |
+| **A3 教育科研** | POI 面: school 1,929 面全齐 (另有 73 点) | ~1,900 面 |
 | **A5 医疗卫生** | POI: hospital 379 + clinic 42 | ~420 点/面 |
 | **A4 体育文化** | POI: stadium 218 + museum 188 + sports_centre 171 + library 90 + theatre 70 | ~740 点/面 |
 | **S 交通枢纽** | `gis_osm_transport` + `gis_osm_traffic` 图层 | 待量化 |
@@ -40,9 +40,12 @@ Geofabrik 北京全量数据可直接推导出的分类：
 
 ## 三、借力的两个真正亮点
 
-1. **统一 ClassCn 中文属性规范 + 规划标准配色** —— 商品的价值不在数据（大家都有），而在"拿起来就能用"。我们应输出同样的四字段 schema（`FID, Shape, Class, ClassCn`）+ GB50137 标准色卡（RGB(225,150,25) 黄=R居住、RGB(200,60,60) 红=B商业、RGB(140,100,170) 紫=M工业、RGB(120,180,80) 绿=G绿地……以截图色卡采样为准）。
+1. **统一 ClassCn 中文属性规范 + 规划标准配色** —— 商品的价值不在数据（大家都有），而在"拿起来就能用"。我们应输出同样的四字段 schema（`FID, Shape, Class, ClassCn`）+ GB50137 标准色卡（以截图色卡采样为准）。
+2. **A4/A5 点转面**：医疗/文体在 OSM 以点为主（学校例外——`pois_a` 面层 19,602 个多边形中 school 已全为面）。点转面复用本项目的 BuildingCluster + concave hull 围栏管线，是倒卖商做不到的增值。
 
-2. **面化(A3/A4/A5)**：教育/医疗/文体在 OSM 里大量只有点。正好复用本项目的 BuildingCluster + 围栏推断管线把点升级为面——这是纯倒卖商做不到的增值，也是与我们 R14 主线的天然衔接。
+### 自审修正 (2026-08-27)
+
+- 原文"A3 教育在 OSM 里大量只有点"有误：实测 `gis_osm_pois_a_free_1.shp` 中 school 全部已是面（1,929 面 / 73 点），T2 的"点转面"范围应缩小到 A4/A5 及零散设施数据，工作量低于原评估。
 
 ## 四、实施切片
 
