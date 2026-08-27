@@ -245,7 +245,14 @@ open outputs/interactive_inspector.html
 | 失败域消解 | 24 个可行动 → **0 个** |
 | 误报可信 | 0 (False Trusted = 0) |
 
-### 回龙观/龙泽园住宅用地围栏示例
+### 在线交互地图（GitHub Pages）
+
+**[🌐 打开交互地图：回龙观城市建设分类 + 小区画像](https://topprismdata.github.io/spatial-decision-intelligence/interactive_map.html)**
+
+- GB50137 九大类 651 地块全量标记（居住/商业/办公/工业/教育/医疗/体育/公园/交通）
+- 点击地块查看：类别、户数、挂牌均价、医院等级、建成年代
+- 双底图切换：OSM（对齐）/ 高德
+- 离线版：[`docs/offline.html`](https://topprismdata.github.io/spatial-decision-intelligence/offline.html)（260KB 单文件，无需联网）
 
 ![回龙观住宅用地围栏](docs/huilongguan_polygons.png)
 
