@@ -17,6 +17,7 @@ from shapely.ops import unary_union
 
 from src.agents.entity_resolution_agent import ResolvedEntityContext
 from src.agents.boundary_reasoning_agent import BoundaryConstraints
+from src.coordinate.metric_crs import bbox_from_center, degree_offset_for_meters
 from src.coordinate.metric_service import MetricGeometryService
 
 
