@@ -48,40 +48,13 @@ class ClassificationRecord:
     evidence: tuple[str, ...] = field(default_factory=tuple)
 
 
-# ── P3 名称证据规则 ──────────────────────────────────────────────────────────
-# 特定设施规则在前; 校园内球场属于校园 A4 生态而非教学区, 不被"大学"翻转.
-_NAME_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
-    # 体育设施名称结尾优先判 A4 (无论是否带大学前缀)
-    ("A4", re.compile(r"(体育场|体育馆|足球场|篮球场|网球场|操场|球场)$")),
-    ("A5", re.compile(r"医院|卫生院|诊所|卫生服务中心|保健院")),
-    ("B1", re.compile(r"便利店|超市|购物中心|商场|市场$")),
-    ("M", re.compile(r"工厂|工业区")),
-)
+from src.classification.rule_engine import load_rules, rule_applies, first_matching_rule, RULES_DIR
 
-# 名称含体育线索的 park 族 → A4 (覆盖"XX公园"其实是体育园区的案例)
-_SPORTY_PARK_FAMILY = {"park", "grass", "scrub", "recreation_ground", "forest"}
-_SPORTY_PARK_KW = re.compile(r"体育|运动|健身|竞技")
-
-# 校园主体名 (整个面就是学校) → A3; 但校园内的具体场馆保持其自身类型
-_CAMPUS_MAIN = re.compile(
-    r"^(华北电力大学|北京农学院|北京师范大学|北京外国语大学附属外国语学校"
-    r"|北京警察学院汽车驾驶学校|农业部管理干部学院|北京华文学院|北京明园大学"
-    r"|北京交通运输职业学院|邮政科学研究规划院)"
-)
-
-# poi fclass 的家族默认码: 当名称规则不触发时用 POI 自己的 fclass 推断
-_POI_FAMILY_DEFAULT = {
-    "stadium": "A4", "pitch": "A4", "track": "A4",
-    "sports_centre": "A4", "supermarket": "B1", "mall": "B1",
-}
+_RULES_PATH = RULES_DIR / "landuse_name_rules.csv"
 
 
-def _name_evidence(name: str) -> tuple[str | None, str]:
-    for code, pat in _NAME_RULES:
-        m = pat.search(name or "")
-        if m:
-            return code, f"name:{m.group(0)}"
-    return None, ""
+def _load_name_rules():
+    return load_rules(_RULES_PATH)
 
 
 def _poi_vote(target_geom, poi_faces: list, min_votes: int = 2) -> tuple[str | None, int]:
@@ -107,7 +80,8 @@ class LabelHygienePipeline:
 
     def __init__(self, poi_faces: list | None = None,
                  gov_records: dict | None = None,
-                 amap_types: dict | None = None):
+                 amap_types: dict | None = None,
+                 rules=None):
         """
         amap_types: {name_prefix: gb_code} 由高德 place/text type 链预计算 (P2).
         gov_records: {fid_or_name: gb_code} 政府文件核定的地块用途 (P1).
@@ -115,6 +89,12 @@ class LabelHygienePipeline:
         self._poi_faces = poi_faces or []
         self._gov = gov_records or {}
         self._amap = amap_types or {}
+        self._rules_cache = rules
+
+    def _rules(self):
+        if self._rules_cache is None:
+            self._rules_cache = _load_name_rules()
+        return self._rules_cache
 
     def classify(self, fid: int, name: str, osm_fclass: str,
                  source_layer: str, geometry=None) -> ClassificationRecord:
@@ -152,29 +132,16 @@ class LabelHygienePipeline:
             ev.append(f"P2:confirm({base})")
             break
 
-        # ---- P3 名称证据 ----
-        # 3a. park 族的"体育园区"检查 (体育公园问题回归守卫)
-        if osm_fclass in _SPORTY_PARK_FAMILY and _SPORTY_PARK_KW.search(name):
-            ev.append(f"P3:sporty_park_kw(体育) overrides park->G")
+        # ---- P3 规则库驱动 (版本化 CSV, priority 序) ----
+        rules = self._rules()
+        hit = first_matching_rule(rules, source_layer, osm_fclass, name)
+        if hit and hit.gb_code != base:
+            ev.append(f"P3:rule[{hit.rule_id}] overrides {osm_fclass}->{base}")
             return ClassificationRecord(fid, name, osm_fclass, source_layer,
-                "A4", LabelStatus.NAME_OVERRIDE, tuple(ev))
+                hit.gb_code, LabelStatus.NAME_OVERRIDE, tuple(ev))
 
-        # 3b. 校园主体名 → A3 (只对 landuse 面 / school-family POI)
-        campus_main = bool(_CAMPUS_MAIN.match(name))
-        is_school_poi = source_layer == "poi_a" and POI_MAP.get(osm_fclass) == "A3"
-        family_default = _POI_FAMILY_DEFAULT.get(osm_fclass)
-
-        if campus_main and (source_layer == "landuse" or is_school_poi or not family_default):
-            ev.append("P3:campus_main→A3")
-            return ClassificationRecord(fid, name, osm_fclass, source_layer,
-                "A3", LabelStatus.NAME_OVERRIDE, tuple(ev))
-
-        # 3c. 设施特定规则 (体育场结尾→A4 等), 与 base 冲突才翻转
-        ncode, nhit = _name_evidence(name)
-        if ncode and ncode != base and not (family_default and family_default == base):
-            ev.append(f"P3:name_rule:{nhit} overrides {base}")
-            return ClassificationRecord(fid, name, osm_fclass, source_layer,
-                ncode, LabelStatus.NAME_OVERRIDE, tuple(ev))
+        # poi 家族默认码 (名称不触发时兜底)
+        family_default = {'stadium':'A4','pitch':'A4','track':'A4','sports_centre':'A4','supermarket':'B1','mall':'B1'}.get(osm_fclass)
         if family_default and base == "U":
             ev.append(f"P3:family_default({family_default})")
             return ClassificationRecord(fid, name, osm_fclass, source_layer,
@@ -182,7 +149,7 @@ class LabelHygienePipeline:
 
         # ---- P4 几何投票 (无名 park 族) ----
         if geometry is not None and self._poi_faces and \
-                osm_fclass in _SPORTY_PARK_FAMILY and not name:
+                osm_fclass in {'park','grass','scrub','recreation_ground','forest'} and not name:
             vote_code, votes = _poi_vote(geometry, self._poi_faces)
             if vote_code and vote_code != base:
                 ev.append(f"P4:poi_vote={votes}x{vote_code}")

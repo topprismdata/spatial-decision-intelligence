@@ -1,0 +1,7 @@
+rule_id,priority,scope,fclass_pattern,name_pattern,gb_code,note
+SPORT-PARK,10,landuse,"^(park|grass|scrub|recreation_ground|forest)$",体育|运动场$|球[场馆]$|健身|竞技,A4,回龙观体育公园回归守卫(用户指出)
+HOSPITAL-NODE,20,any,,医院|卫生院|诊所|卫生服务中心|保健院,A5,
+SCHOOL-SUFFIX,25,any,小学$|中学$|幼儿园$|学校$|附中|附小,A3,
+MARKET-NOUN,30,any,便利店|^市场$|购物中心|商场|超市$,B1,防校园便利店被学院名吞
+INDUSTRIAL-NOUN,35,any,工厂|工业区,M,
+CAMPUS-FULL,40,any,"^(university|college|school)$",^(华北电力大学|北京农学院|北京师范大学|北京外国语大学附属外国语学校|北京警察学院汽车驾驶学校|农业部管理干部学院|北京华文学院|北京明园大学|北京交通运输职业学院|邮政科学研究规划院),A3,整面即校区的实体
