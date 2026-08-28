@@ -4,6 +4,12 @@
 
 # Spatial Decision Intelligence
 
+> **Language / 语言:** English primary · 中文概览如下。
+>
+> ### 中文概览
+> 空间世界模型的完整性与决策准备度门控层，将不一致的空间数据转化为可追溯、可验证的空间事实。
+
+
 **The trusted spatial world model integrity layer and decision readiness gate for enterprise decision engines.**
 
 `TRUSTED WORLD STATE` · `DECISION READINESS` · `4-AGENT ARCHITECTURE` · `EXPLAINABLE DIAGNOSIS` · `HUMAN-GOVERNED` · `MIT`
