@@ -8,9 +8,11 @@ and computes all figures from the actual run. No hardcoded stale numbers.
 
 import json
 import os
+from pathlib import Path
 import pandas as pd
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = str(Path(__file__).resolve().parents[2])
+os.chdir(PROJECT_ROOT)
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
 RUN_DATE = "2026-08-19"
 

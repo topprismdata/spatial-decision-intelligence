@@ -9,9 +9,17 @@
   均宽(2A/P)为其一阶近似, MIC 半径为其最大值
 """
 import math
+import os
+import sys
 import pandas as pd
 from shapely import wkt, maximum_inscribed_circle
 from shapely.geometry import MultiPolygon, Polygon
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
+
 from src.ingestion.parser import ExcelIngestionParser
 from src.coordinate.assessment import CoordinateIntelligence
 

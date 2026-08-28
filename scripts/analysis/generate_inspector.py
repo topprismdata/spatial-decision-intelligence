@@ -9,16 +9,21 @@ Interactive visual case inspector — FULL DATA version.
 import json
 import math
 import os
+import sys
 import pandas as pd
 from shapely import wkt
 from shapely.geometry import mapping
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
 
 from src.ingestion.parser import ExcelIngestionParser
 from src.coordinate.assessment import CoordinateIntelligence
 from src.coordinate.transforms import wgs84_to_gcj02, transform_geometry_wkt
 from src.geometry.validation import GeometryQAEngine
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
 EXCEL_PATH = "data/client_a_sites.xlsx"
 

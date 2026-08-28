@@ -13,8 +13,12 @@
 import pandas as pd
 import numpy as np
 import json
+import os
 from collections import Counter
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.chdir(PROJECT_ROOT)
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
 OUT = "outputs/fence_dual_goals.html"
 qa = pd.read_csv("outputs/qa_issues_report.csv")
 rel = pd.read_csv("outputs/entity_relations.csv")

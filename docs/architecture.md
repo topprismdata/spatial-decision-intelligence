@@ -76,9 +76,9 @@ M4  Deliverables                  QA report, relation pairs, interactive map
 | `src/entity_resolution/` | Diagnosis Reasoning | STRtree recall, BGE bi-encoder, component gates, rerank |
 | `src/pipelines/` | Dual Goal Engine | stage orchestration M0 → M4 |
 | `run.py` | Dual Goal Engine | full pipeline entry point |
-| `generate_fence_dual_goals.py` | Deliverables | dual-goal HTML report with map overlay |
-| `generate_inspector.py` | Deliverables | interactive per-category case inspector |
-| `rerank_stage.py` | Diagnosis Reasoning | full-set cross-encoder rerank |
+| `scripts/analysis/generate_fence_dual_goals.py` | Deliverables | dual-goal HTML report with map overlay |
+| `scripts/analysis/generate_inspector.py` | Deliverables | interactive per-category case inspector |
+| `scripts/analysis/rerank_stage.py` | Diagnosis Reasoning | full-set cross-encoder rerank |
 
 ## Extension points for new scenarios
 

@@ -30,9 +30,10 @@ import logging
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ.setdefault("OMP_NUM_THREADS", "4")
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("rerank_stage")

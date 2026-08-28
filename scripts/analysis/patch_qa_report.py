@@ -8,8 +8,14 @@ Rebuild qa_issues_report.csv with the literature-grounded width rules:
 Lightweight: rule-based semantics + geometry QA only, no embeddings/rerank.
 """
 import os
+import sys
 
 import pandas as pd
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
 
 from src.ingestion.parser import ExcelIngestionParser
 from src.coordinate.assessment import CoordinateIntelligence
@@ -17,7 +23,6 @@ from src.geometry.validation import GeometryQAEngine
 from src.entity_resolution.pair_features import parse_chinese_community_semantics
 from src.domain.models import EntityType
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
 EXCEL_PATH = "data/client_a_sites.xlsx"
 
