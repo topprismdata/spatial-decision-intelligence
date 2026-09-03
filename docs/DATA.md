@@ -71,7 +71,8 @@ python3 scripts/verify_data_readiness.py
 | `outputs/entity_relations.csv` + rerank | MB | 主管线 + 独立进程 `scripts/analysis/rerank_stage.py` | `python3 run.py …` → `python3 scripts/analysis/rerank_stage.py` |
 | `outputs/selfdraw_eval.csv|selfdraw_geoms.json` | MB | `draw_step2_generate.py:25` → step3/4/5 | 依序 `draw_step2→5` |
 | `outputs/road_alignment_beijing*.csv|road_placebo*.csv` | MB | `road_step2b_label.py:27`、`2c:21`、`2d:27`、`2e:24`、`2f:25` | 依序 `road_step2b→2f` |
-| `outputs/beijing_full|beijing_batch` | 140 MB | `scripts/beijing_full_gb50137.py:65` | 需 beijing_shp + Excel/样例 |
+| `outputs/beijing_full/`（geojson+shp+map.html） | ~75 MB | `scripts/beijing_full_gb50137.py:65`（geojson/shp）+ `scripts/render_beijing_full_map.py`（地图，canvas 渲染） | `python3 scripts/beijing_full_gb50137.py && python3 scripts/render_beijing_full_map.py`（需 beijing_shp） |
+| `outputs/beijing_batch` | 18 MB | 批处理旧产出 | 由主管线重跑生成 |
 | `outputs/unet_fence_best.pth` | 30 MB | 训练 `scripts/draw_step9_train_unet.py:19-22` | 需 `data/satellite`（小样本可用合成 id） |
 | `outputs/scenic_spots|huilongguan_demo|schools` | MB | `scenic_final_package.py:8`、`demo_huilongguan_e2e.py:79` | 对应脚本直跑 |
 
