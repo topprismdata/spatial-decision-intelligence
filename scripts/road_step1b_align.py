@@ -1,6 +1,8 @@
 """Step 1b: 逐样本 Overpass 取局部路网 + 对齐度量（仅北京）."""
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, json, time, math, random
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 import urllib.request, urllib.parse
 
 import pandas as pd
@@ -11,8 +13,8 @@ from shapely.strtree import STRtree
 
 from src.coordinate.transforms import transform_geometry_wkt, gcj02_to_wgs84
 
-EXCEL = "data/client_a_sites.xlsx"
-QA = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/qa_issues_report.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+QA = str(_REPO / 'outputs/qa_issues_report.csv')
 OVERPASS = "https://overpass-api.de/api/interpreter"
 
 df = pd.read_excel(EXCEL, sheet_name="sheet1")

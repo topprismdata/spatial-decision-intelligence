@@ -8,8 +8,10 @@
   主干道(motorway/trunk/primary/secondary 含link)在多边形内的长度 → 真小区≈0
 路网统一转局部米制坐标(北京原点), KDTree 最近查询, 精确到米.
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, math, time
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import numpy as np
 import pandas as pd
@@ -21,10 +23,10 @@ from shapely.ops import transform as shp_transform
 
 from src.coordinate.transforms import transform_geometry_wkt, gcj02_to_wgs84
 
-EXCEL = "data/client_a_sites.xlsx"
-QA = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/qa_issues_report.csv"
-ROAD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/road_alignment_beijing_full.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+QA = str(_REPO / 'outputs/qa_issues_report.csv')
+ROAD_DIR = str(_REPO / 'data/roads')
+OUT = str(_REPO / 'outputs/road_alignment_beijing_full.csv')
 
 LON0, LAT0 = 116.40, 39.90
 M = 111320.0

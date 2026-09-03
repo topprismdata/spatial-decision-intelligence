@@ -19,6 +19,9 @@ What it does:
 
 from __future__ import annotations
 
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
+
 import os
 import sys
 import json
@@ -44,7 +47,7 @@ TIER1_IOU_THRESHOLD = 0.15
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--excel", default="data/client_a_sites.xlsx")
+    ap.add_argument("--excel", default=str(_REPO / 'data/client_a_sites.xlsx'))
     ap.add_argument("--output-dir", default=os.path.join(PROJECT_ROOT, "outputs"))
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--max-length", type=int, default=48,

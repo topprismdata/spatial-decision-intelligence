@@ -6,6 +6,8 @@ Verifies end-to-end: Real OSM -> Observation -> Provider -> MetricGeometryServic
 
 import json
 import os
+
+import pytest
 from shapely import wkt
 from shapely.geometry import Point
 
@@ -29,6 +31,14 @@ from src.providers.ranking import CandidateRankingEngine
 from src.domain.contracts import HypothesisStatus, ProviderStatus
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "beijing_fixtures")
+
+# Frozen OSM extracts are not shipped in-repo (compliance: no raw geo data on
+# public hosting). Collaborators fetch them locally with:
+#   python3 scripts/prepare_sample_data.py --with-fixtures
+pytestmark = pytest.mark.skipif(
+    not os.path.exists(os.path.join(FIXTURES_DIR, "residential_500.json")),
+    reason="data/beijing_fixtures missing; run scripts/prepare_sample_data.py --with-fixtures",
+)
 
 
 def test_real_beijing_osm_case_a_existing_open_boundary():

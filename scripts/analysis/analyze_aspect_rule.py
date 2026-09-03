@@ -3,6 +3,8 @@
 - 误报: 已标记的 83 条中, 最小外接矩形短边(实际宽度)其实不窄的
 - 漏报: 未标记的围栏中, 实际宽度很窄(带状走廊)但比例不超 10 的
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
 import math
 import os
 import sys
@@ -18,7 +20,7 @@ os.chdir(PROJECT_ROOT)
 from src.ingestion.parser import ExcelIngestionParser
 from src.coordinate.assessment import CoordinateIntelligence
 
-EXCEL_PATH = "data/client_a_sites.xlsx"
+EXCEL_PATH = str(_REPO / 'data/client_a_sites.xlsx')
 
 df_qa = pd.read_csv(os.path.join(PROJECT_ROOT, "outputs", "qa_issues_report.csv"),
                     usecols=["source_record_id", "qa_issues", "area_m2", "aspect_ratio"])

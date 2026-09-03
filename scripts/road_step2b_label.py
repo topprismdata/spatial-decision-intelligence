@@ -10,9 +10,11 @@
   ORPHAN_UNCERTAIN    两假设都不成立 + 路网稀疏
 轴线: 缓冲侵蚀骨架法, 退路最小外接矩形长轴.
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, math
 import numpy as np
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import pandas as pd
 from shapely import wkt
@@ -21,10 +23,10 @@ from shapely.strtree import STRtree
 
 from src.coordinate.transforms import transform_geometry_wkt, gcj02_to_wgs84
 
-EXCEL = "data/client_a_sites.xlsx"
-QA = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/qa_issues_report.csv"
-ROAD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/road_alignment_beijing.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+QA = str(_REPO / 'outputs/qa_issues_report.csv')
+ROAD_DIR = str(_REPO / 'data/roads')
+OUT = str(_REPO / 'outputs/road_alignment_beijing.csv')
 
 M_PER_DEG_LAT = 111320.0
 def m2deg_lng(m, lat): return m / (111320.0 * math.cos(math.radians(lat)))

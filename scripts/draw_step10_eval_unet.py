@@ -1,3 +1,5 @@
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 #!/usr/bin/env python3
 """
 评估训练好的 U-Net vs A3 路网街区基线
@@ -18,7 +20,7 @@ random.seed(42)
 np.random.seed(42)
 torch.manual_seed(42)
 
-ROOT = '/Users/user/WorkBuddy/2026-08-18-17-47-15'
+ROOT = str(_REPO)
 device = torch.device('cpu')
 
 # ---- 复现切分 ----

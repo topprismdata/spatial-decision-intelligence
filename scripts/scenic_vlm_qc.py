@@ -1,11 +1,13 @@
 """R16 视觉验证: MiniMax M3 (SCNet) 逐个核验景区边界截图"""
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import warnings; warnings.filterwarnings("ignore")
 import os, json, re, base64, glob
 import requests
 from PIL import Image
 import pandas as pd
 
-KEY = re.search(r'apiKey: (\S+)', open('/Users/user/.omp/agent/models.yml').read()).group(1)
+KEY = re.search(r'apiKey: (\S+)', open(_o.path.expanduser('~/.omp/agent/models.yml')).read()).group(1)
 QC_DIR = "outputs/scenic_spots/visual_qc"
 OUT_CSV = "outputs/scenic_spots/visual_qc_verdicts.csv"
 

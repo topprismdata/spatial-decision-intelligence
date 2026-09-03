@@ -6,6 +6,9 @@ from the 9,039 governance dataset to build the training set for AI fence generat
 
 from __future__ import annotations
 
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
+
 import os
 import sys
 import json
@@ -32,7 +35,7 @@ class SilverDatasetExtractor:
 
     def __init__(
         self,
-        excel_path: str = "data/client_a_sites.xlsx",
+        excel_path: str = str(_REPO / 'data/client_a_sites.xlsx'),
         output_dir: str = os.path.join(PROJECT_ROOT, "outputs"),
         min_qa_score: float = 0.80,
         min_area_m2: float = 1000.0,

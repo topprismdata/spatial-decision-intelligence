@@ -5,8 +5,10 @@ A2: 全类型路网(含footway/service/steps) polygonize → 胡同级街区面;
 B2: 建筑簇 buffer(8m) 联通; 面积>3×先验 → 先验圆裁剪
 对比保留一代结果 (A1/B1/C), 输出合并 selfdraw_eval.csv
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, math
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import numpy as np
 import pandas as pd
@@ -16,11 +18,11 @@ from shapely.ops import unary_union, polygonize
 
 from src.coordinate.transforms import transform_geometry_wkt, gcj02_to_wgs84
 
-EXCEL = "data/client_a_sites.xlsx"
-ROAD_WIN = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads_windows"
-BLD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/buildings"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/selfdraw_eval.csv"
-GEO_OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/selfdraw_geoms.json"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+ROAD_WIN = str(_REPO / 'data/roads_windows')
+BLD_DIR = str(_REPO / 'data/buildings')
+OUT = str(_REPO / 'outputs/selfdraw_eval.csv')
+GEO_OUT = str(_REPO / 'outputs/selfdraw_geoms.json')
 
 WINDOWS = {"W1_oldcity": (116.37, 39.93), "W2_chaoyang": (116.43, 39.93)}
 HALF_LNG, HALF_LAT = 0.0117, 0.009

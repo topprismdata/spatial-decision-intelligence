@@ -5,6 +5,8 @@ Interactive visual case inspector — FULL DATA version.
 - Case metadata in cases_data.js
 - Search + pagination in UI
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
 
 import json
 import math
@@ -25,7 +27,7 @@ from src.coordinate.transforms import wgs84_to_gcj02, transform_geometry_wkt
 from src.geometry.validation import GeometryQAEngine
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
-EXCEL_PATH = "data/client_a_sites.xlsx"
+EXCEL_PATH = str(_REPO / 'data/client_a_sites.xlsx')
 
 # --- Data loading ---
 records = ExcelIngestionParser.parse_file(EXCEL_PATH)

@@ -7,6 +7,8 @@ Rebuild qa_issues_report.csv with the literature-grounded width rules:
 - ELONGATED_BLOCK: ratio > 10 but widths healthy (informational)
 Lightweight: rule-based semantics + geometry QA only, no embeddings/rerank.
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
 import os
 import sys
 
@@ -24,7 +26,7 @@ from src.entity_resolution.pair_features import parse_chinese_community_semantic
 from src.domain.models import EntityType
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
-EXCEL_PATH = "data/client_a_sites.xlsx"
+EXCEL_PATH = str(_REPO / 'data/client_a_sites.xlsx')
 
 old = pd.read_csv(os.path.join(OUTPUT_DIR, "qa_issues_report.csv"))
 old_extreme = set(old[old["qa_issues"].fillna("").str.contains("EXTREME_ASPECT_RATIO")]["source_record_id"])

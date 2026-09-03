@@ -1,7 +1,9 @@
 """自绘围栏 Step 1: 为两个演示窗口下载 OSM 建筑足迹 (way[building])."""
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import json, os, time, urllib.request, urllib.parse
 
-OUT_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/buildings"
+OUT_DIR = str(_REPO / 'data/buildings')
 OVERPASS = "https://overpass-api.de/api/interpreter"
 os.makedirs(OUT_DIR, exist_ok=True)
 

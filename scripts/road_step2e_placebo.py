@@ -6,8 +6,10 @@
 若 θ≠0 的贴路通过率 ≈ θ=0, 则 WGS84 判定主要是巧合; 若 θ=0 显著高于 θ≠0, 信号真实.
 注意 θ=180° 对 GCJ 围栏 = true+2s (双重偏移), 对 WGS 围栏 = true+s (即 GCJ 假设位置).
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, math, time
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import numpy as np
 import pandas as pd
@@ -19,9 +21,9 @@ import shapely
 
 from src.coordinate.transforms import wgs84_to_gcj02
 
-EXCEL = "data/client_a_sites.xlsx"
-ROAD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/road_placebo_results.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+ROAD_DIR = str(_REPO / 'data/roads')
+OUT = str(_REPO / 'outputs/road_placebo_results.csv')
 
 LON0, LAT0 = 116.40, 39.90
 M = 111320.0

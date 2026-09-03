@@ -8,8 +8,10 @@
   C 代(基线): 种子点为圆心、局部先验面积为半径的圆 — 不用任何地图数据
 评估: 与采购围栏(归一WGS空间)算 IoU / 召回(∩/采购) / 精确率(∩/自绘)
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, math
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import numpy as np
 import pandas as pd
@@ -19,10 +21,10 @@ from shapely.ops import unary_union, polygonize, transform as shp_transform
 
 from src.coordinate.transforms import transform_geometry_wkt, gcj02_to_wgs84
 
-EXCEL = "data/client_a_sites.xlsx"
-ROAD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads"
-BLD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/buildings"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/selfdraw_eval.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+ROAD_DIR = str(_REPO / 'data/roads')
+BLD_DIR = str(_REPO / 'data/buildings')
+OUT = str(_REPO / 'outputs/selfdraw_eval.csv')
 
 WINDOWS = {
     "W1_oldcity": (116.37, 39.93),

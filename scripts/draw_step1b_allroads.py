@@ -1,7 +1,9 @@
 """补下两窗口的全类型路网 (含 footway/service/path) — 胡同级街区切分必需."""
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import json, os, time, urllib.request, urllib.parse
 
-OUT_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads_windows"
+OUT_DIR = str(_REPO / 'data/roads_windows')
 OVERPASS = "https://overpass-api.de/api/interpreter"
 os.makedirs(OUT_DIR, exist_ok=True)
 

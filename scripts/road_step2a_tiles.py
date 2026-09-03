@@ -1,14 +1,16 @@
 """Step 2a: 计算北京围栏覆盖 bbox 并分片下载路网（可断点续传）."""
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, time, math
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 import urllib.request, urllib.parse
 
 import pandas as pd
 from shapely import wkt
 
-EXCEL = "data/client_a_sites.xlsx"
-QA = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/qa_issues_report.csv"
-ROAD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+QA = str(_REPO / 'outputs/qa_issues_report.csv')
+ROAD_DIR = str(_REPO / 'data/roads')
 OVERPASS = "https://overpass-api.de/api/interpreter"
 HIGHWAY_FILTER = "^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street)(_link)?$"
 

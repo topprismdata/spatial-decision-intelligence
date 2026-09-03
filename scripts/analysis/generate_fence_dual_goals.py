@@ -10,6 +10,8 @@
   outputs/entity_relations.csv   —— 候选对的空间/语义关系(含 iou / intersection_over_min)
   outputs/dataset_health_report.json / pipeline_summary.json —— 汇总
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
 import pandas as pd
 import numpy as np
 import json
@@ -201,7 +203,7 @@ from src.geometry.validation import GeometryQAEngine
 from shapely import wkt as _shp_wkt
 from shapely.geometry import mapping as _shp_mapping
 
-_EXCEL = "data/client_a_sites.xlsx"
+_EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
 _all_recs = ExcelIngestionParser.parse_file(_EXCEL)
 _rm = {r.source_record_id: r for r in _all_recs}
 _need = set(overlaps["subject_record_id"]) | set(overlaps["object_record_id"])

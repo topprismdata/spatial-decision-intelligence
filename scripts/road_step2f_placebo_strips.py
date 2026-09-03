@@ -6,8 +6,10 @@
   1) 群体层面: H_wgs 通过率 vs 安慰剂通过率 → 信号是否超过巧合
   2) 逐围栏: raw 的 med 在 {安慰剂 meds} 中的秩 → 经验 p 值 (越小越真实)
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, os, json, math, time
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import numpy as np
 import pandas as pd
@@ -19,10 +21,10 @@ import shapely
 
 from src.coordinate.transforms import gcj02_to_wgs84, transform_geometry_wkt
 
-EXCEL = "data/client_a_sites.xlsx"
-QA = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/qa_issues_report.csv"
-ROAD_DIR = "/Users/user/WorkBuddy/2026-08-18-17-47-15/data/roads"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/road_placebo_strips.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+QA = str(_REPO / 'outputs/qa_issues_report.csv')
+ROAD_DIR = str(_REPO / 'data/roads')
+OUT = str(_REPO / 'outputs/road_placebo_strips.csv')
 
 LON0, LAT0 = 116.40, 39.90
 M = 111320.0

@@ -1,3 +1,5 @@
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[2])
 # -*- coding: utf-8 -*-
 """按文献标准(MIC 最大内切圆 + 均宽)复核 NARROW_STRIP 判定。
 
@@ -23,7 +25,7 @@ os.chdir(PROJECT_ROOT)
 from src.ingestion.parser import ExcelIngestionParser
 from src.coordinate.assessment import CoordinateIntelligence
 
-EXCEL = "data/client_a_sites.xlsx"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
 
 df = pd.read_csv("outputs/qa_issues_report.csv",
                  usecols=["source_record_id", "qa_issues", "mean_width_m", "area_m2"])

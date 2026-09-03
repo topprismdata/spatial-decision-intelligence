@@ -6,8 +6,10 @@
 两者取小者即为多边形真实 CRS，与路网打标 label 对照。
 另计算 GCJ 偏移量级 |wgs84_to_gcj02(centroid)-centroid| 供参考。
 """
+import os as _o; from pathlib import Path as _P
+_REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import sys, math
-sys.path.insert(0, "/Users/user/WorkBuddy/2026-08-18-17-47-15")
+sys.path.insert(0, str(_REPO))
 
 import pandas as pd
 from shapely import wkt
@@ -16,9 +18,9 @@ from shapely.ops import transform as shp_transform
 
 from src.coordinate.transforms import wgs84_to_gcj02
 
-EXCEL = "data/client_a_sites.xlsx"
-ALIGN = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/road_alignment_beijing.csv"
-OUT = "/Users/user/WorkBuddy/2026-08-18-17-47-15/outputs/road_alignment_beijing_validated.csv"
+EXCEL = str(_REPO / 'data/client_a_sites.xlsx')
+ALIGN = str(_REPO / 'outputs/road_alignment_beijing.csv')
+OUT = str(_REPO / 'outputs/road_alignment_beijing_validated.csv')
 
 M_LAT = 111320.0
 
