@@ -40,6 +40,9 @@ dependencies = [
     "click>=8.0.0"
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [project.scripts]
 spatial-di = "src.cli:main"
 
