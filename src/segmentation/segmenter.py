@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
+from src.coordinate.metric_crs import meters_per_degree_lat, meters_per_degree_lng
+
 
 @dataclass(frozen=True)
 class BoundarySegment:

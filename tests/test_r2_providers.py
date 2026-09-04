@@ -37,9 +37,9 @@ class TestAreaPriorBaseline:
         assert result.status == ProviderStatus.APPLICABLE
         assert len(result.hypotheses) == 1
         h = result.hypotheses[0]
-        assert h.status == HypothesisStatus.PROPOSED
-        assert "EXPERIMENTAL" in str(h.metadata.get("provider_features", {}).get("baseline_type", ""))
-        assert "confidence" not in h.metadata
+        assert h.hypothesis.status == HypothesisStatus.PROPOSED
+        assert "EXPERIMENTAL" in str(h.provider_features.get("baseline_type", ""))
+        assert "confidence" not in h.provider_features
 
     def test_not_applicable_without_prior(self):
         provider = AreaPriorBaseline()
@@ -52,9 +52,9 @@ class TestRoadBlockProvider:
         provider = RoadBlockProvider()
         result = provider.generate(_make_request())
         for h in result.hypotheses:
-            assert h.status == HypothesisStatus.PROPOSED
-            assert "confidence" not in h.metadata
-            features = h.metadata.get("provider_features", {})
+            assert h.hypothesis.status == HypothesisStatus.PROPOSED
+            assert "confidence" not in h.provider_features
+            features = h.provider_features
             if "road_profile_variant" in features:
                 assert features["road_profile_variant"] in ("STRONG_ONLY", "STRONG_PLUS_WEAK")
 
@@ -62,7 +62,7 @@ class TestRoadBlockProvider:
         provider = RoadBlockProvider()
         result = provider.generate(_make_request())
         for h in result.hypotheses:
-            assert "confidence" not in h.metadata
+            assert "confidence" not in h.provider_features
 
 
 class TestBuildingClusterProvider:
@@ -70,14 +70,14 @@ class TestBuildingClusterProvider:
         provider = BuildingClusterProvider()
         result = provider.generate(_make_request(), source_policy=BuildingSourcePolicy.OSM_ONLY)
         for h in result.hypotheses:
-            assert h.status == HypothesisStatus.PROPOSED
+            assert h.hypothesis.status == HypothesisStatus.PROPOSED
 
     def test_multi_source(self):
         provider = BuildingClusterProvider()
         result = provider.generate(_make_request(), source_policy=BuildingSourcePolicy.MULTI_SOURCE)
         # May or may not have results depending on data availability
         for h in result.hypotheses:
-            assert h.status == HypothesisStatus.PROPOSED
+            assert h.hypothesis.status == HypothesisStatus.PROPOSED
 
 
 class TestCandidateRankingEngine:
@@ -86,7 +86,7 @@ class TestCandidateRankingEngine:
         provider = AreaPriorBaseline()
         req = _make_request(priors=Priors(area_prior=AreaPrior(25000)))
         output = provider.generate(req)
-        records = engine.rank(list(output.hypotheses))
+        records = engine.rank([ph.hypothesis for ph in output.hypotheses])
         assert len(records) >= 1
         assert all(hasattr(r, "ranking_score") for r in records)
 
@@ -95,8 +95,8 @@ class TestCandidateRankingEngine:
         provider = AreaPriorBaseline()
         req = _make_request(priors=Priors(area_prior=AreaPrior(25000)))
         output = provider.generate(req)
-        records_geo = engine.rank(list(output.hypotheses), semantic_features_enabled=False)
-        records_sem = engine.rank(list(output.hypotheses), semantic_features_enabled=True)
+        records_geo = engine.rank([ph.hypothesis for ph in output.hypotheses], semantic_features_enabled=False)
+        records_sem = engine.rank([ph.hypothesis for ph in output.hypotheses], semantic_features_enabled=True)
         # B7 should produce different scores when semantic is enabled
         assert isinstance(records_sem[0].ranking_score, float)
 
@@ -129,4 +129,4 @@ class TestNoTrust:
             req = _make_request(**kwargs)
             result = provider.generate(req)
             for h in result.hypotheses:
-                assert h.status != HypothesisStatus.TRUSTED
+                assert h.hypothesis.status != HypothesisStatus.TRUSTED

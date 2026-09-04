@@ -55,7 +55,7 @@ class TestObservation:
             provenance="overpass-api",
         )
         assert o.source == "OSM"
-        assert "龙湖" in o.observed_features
+        assert "龙湖小区" in o.observed_features
 
     def test_immutable(self):
         o = Observation()
@@ -126,7 +126,7 @@ class TestRelationMeasurement:
         rel = SpatialRelation(
             source_entity_id="entrance-1",
             target_entity_id="compound-1",
-            relation_type=RelationType.ENTRANCE_OF,
+            relation_type=RelationType.HAS_ENTRANCE,
             measurements=m,
         )
         assert rel.measurements.iou is None  # IoU not applicable
@@ -139,7 +139,7 @@ class TestSpatialRelation:
         rel = SpatialRelation(
             source_entity_id="entrance-1",
             target_entity_id="compound-1",
-            relation_type=RelationType.ENTRANCE_OF,
+            relation_type=RelationType.HAS_ENTRANCE,
             measurements=None,
         )
         assert rel.measurements is None
@@ -220,9 +220,8 @@ class TestAuthorityAssertion:
         aa = AuthorityAssertion(
             entity_id="ent-1", authority="test", evidence_refs=("ev-1",)
         )
-        with pytest.raises(TypeError):
-            aa.evidence_refs + ("ev-2",)  # tuple is immutable, this creates new — no error actually
-        # verify it's a tuple
+        with pytest.raises(AttributeError):  # frozen dataclass blocks reassignment
+            aa.evidence_refs = ("ev-1", "ev-2")
         assert isinstance(aa.evidence_refs, tuple)
 
 
@@ -346,8 +345,8 @@ class TestOntology:
         assert ontology_type_from_name("北门") == OntologyType.ENTRANCE
         assert ontology_type_from_name("未知类型") is None
 
-    def test_exactly_8_types(self):
-        assert len(OntologyType) == 8
+    def test_exactly_14_types(self):
+        assert len(OntologyType) == 14
 
 
 # ── Edge Case Tests ───────────────────────────────────────────────────────────
@@ -402,19 +401,25 @@ class TestAdapters:
         from src.domain.models import SourceRecord
 
         record = SourceRecord(
-            code="BJ-001",
-            name="龙湖小区",
-            address="北京朝阳",
-            city="北京",
-            district="朝阳",
-            lng=116.4,
-            lat=39.9,
-            geometry_wkt="POLYGON((0 0, 1 0, 1 1, 0 0))",
+            source_record_id="SR-BJ-001",
+            source_system="excel_import",
+            source_batch_id="batch-1",
+            source_business_id="BJ-001",
+            name_raw="龙湖小区",
+            address_raw="北京朝阳",
+            province_raw="北京",
+            city_raw="北京",
+            district_raw="朝阳",
+            street_raw="",
+            point_raw_lng=116.4,
+            point_raw_lat=39.9,
+            geometry_raw_wkt="POLYGON((0 0, 1 0, 1 1, 0 0))",
         )
         obs = observation_from_source_record(record)
         assert obs.source == "excel_import"
+        assert obs.source_record_id == "SR-BJ-001"
         assert "龙湖小区" in obs.observed_features
-        assert obs.raw_geometry == record.geometry_wkt
+        assert obs.raw_geometry == record.geometry_raw_wkt
 
     def test_spatial_relation_from_entity_relation(self):
         """Test that EntityRelation → SpatialRelation adapter works."""
@@ -422,15 +427,17 @@ class TestAdapters:
         from src.domain.models import EntityRelation, RelationType as V1RelationType
 
         er = EntityRelation(
-            source_id="src-1",
-            target_id="tgt-1",
+            relation_id="REL-1",
+            subject_id="src-1",
+            object_id="tgt-1",
             relation_type=V1RelationType.SAME_ENTITY,
-            iou=0.95,
-            distance=0.0,
-            semantic_similarity=0.98,
+            same_entity_probability=0.95,
+            relation_confidence=0.95,
+            metrics={"iou": 0.95, "centroid_dist_meters": 0.0, "name_sim": 0.98},
         )
         rel = spatial_relation_from_entity_relation(er)
         assert rel.relation_type == RelationType.SAME_AS
+        assert rel.source_entity_id == "src-1"
         assert rel.measurements is not None
         assert rel.measurements.iou == 0.95
         assert rel.measurements.semantic_score == 0.98

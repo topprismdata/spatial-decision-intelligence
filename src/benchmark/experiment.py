@@ -81,7 +81,7 @@ class AccuracyCoverageCurve:
     def summary(self) -> str:
         lines = ["Accuracy-Coverage Curve:"]
         for p in self.points:
-            lines.append(f"  >= {p.trust_threshold:.0%} confidence: "
+            lines.append(f"  >= {p.trust_threshold:.1%} confidence: "
                          f"accuracy={p.accuracy:.1%}, coverage={p.coverage:.1%}")
         return "\n".join(lines)
 
@@ -153,7 +153,7 @@ class FailureCode(str, Enum):
 
 
 FAILURE_DESCRIPTIONS = {
-    FailureCode.F01: "Entity not found",
+    FailureCode.F01: "ENTITY_NOT_FOUND: entity not found",
     FailureCode.F02: "Entity duplicate",
     FailureCode.F03: "Entity false merge",
     FailureCode.F04: "Entity false split",

@@ -54,7 +54,7 @@ class BuildingFunctionClassifier:
 
     SCHOOL_KEYWORDS = frozenset({"学校", "小学", "中学", "幼儿园", "大学", "学院", "教学楼", "操场"})
     HOSPITAL_KEYWORDS = frozenset({"医院", "卫生院", "诊所", "医疗", "康复"})
-    COMMERCIAL_KEYWORDS = frozenset({"商场", "超市", "购物", "商业", "商铺", "底商", "菜市场"})
+    COMMERCIAL_KEYWORDS = frozenset({"商场", "超市", "购物", "商业", "商铺", "底商", "菜市场", "广场"})
     OFFICE_KEYWORDS = frozenset({"办公楼", "写字楼", "大厦", "商务", "办公"})
     RESIDENTIAL_KEYWORDS = frozenset({"住宅", "公寓", "宿舍", "居民", "小区", "花园", "家园"})
 

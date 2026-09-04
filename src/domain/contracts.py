@@ -447,21 +447,25 @@ class BenchmarkRunRecord:
 
 
 def observation_from_source_record(record: "SourceRecord") -> Observation:
+    """Adapt a v1 SourceRecord (_raw field schema) into a v2 Observation."""
+    features = tuple(
+        v for v in (record.name_raw, record.address_raw, record.district_raw) if v
+    )
     return Observation(
-        source="excel_import",
-        source_record_id=str(id(record)),
-        observed_features=(record.name, record.address),
-        raw_geometry=record.geometry_wkt,
-        provenance=f"excel:{record.city}/{record.district}",
+        source=record.source_system or "excel_import",
+        source_record_id=record.source_record_id,
+        observed_features=features,
+        raw_geometry=record.geometry_raw_wkt,
+        provenance=f"{record.source_system}:{record.city_raw}/{record.district_raw}",
     )
 
 
 def representation_from_geometry_version(gv: "GeometryVersion", entity_id: str) -> SpatialRepresentation:
     return SpatialRepresentation(
         entity_id=entity_id,
-        geometry=gv.wkt,
-        crs=gv.crs,
-        confidence=gv.qa_score if hasattr(gv, "qa_score") else 0.0,
+        geometry=gv.geometry_wkt,
+        crs=gv.coordinate_reference,
+        confidence=gv.geometry_confidence,
     )
 
 
@@ -469,20 +473,28 @@ def spatial_relation_from_entity_relation(er: "EntityRelation") -> SpatialRelati
     from src.domain.models import RelationType as V1RelationType
     type_map = {
         V1RelationType.SAME_ENTITY: RelationType.SAME_AS,
+        V1RelationType.EXACT_DUPLICATE: RelationType.SAME_AS,
         V1RelationType.SAME_ENTITY_ALT_BOUNDARY: RelationType.SAME_AS,
         V1RelationType.RELATED_ENTITY: RelationType.OVERLAPS,
         V1RelationType.POSSIBLE_MERGE_ERROR: RelationType.OVERLAPS,
-        V1RelationType.POSSIBLE_DUPLICATE: RelationType.SAME_AS,
+        V1RelationType.WHOLE_TO_PHASE: RelationType.PART_OF,
+        V1RelationType.PHASE_TO_WHOLE: RelationType.WITHIN,
+        V1RelationType.SIBLING_PHASE: RelationType.ADJACENT_TO,
+        V1RelationType.SIBLING_SUBAREA: RelationType.ADJACENT_TO,
+        V1RelationType.SIBLING_COURTYARD: RelationType.ADJACENT_TO,
+        V1RelationType.NOT_SAME_ENTITY: RelationType.UNKNOWN,
+        V1RelationType.UNCERTAIN: RelationType.UNKNOWN,
     }
     mapped = type_map.get(er.relation_type, RelationType.UNKNOWN)
+    m = er.metrics or {}
     return SpatialRelation(
-        source_entity_id=er.source_id or "",
-        target_entity_id=er.target_id or "",
+        source_entity_id=er.subject_id or "",
+        target_entity_id=er.object_id or "",
         relation_type=mapped,
         measurements=RelationMeasurement(
-            iou=er.iou if hasattr(er, "iou") else None,
-            distance=er.distance if hasattr(er, "distance") else None,
-            semantic_score=er.semantic_similarity if hasattr(er, "semantic_similarity") else None,
-            cross_encoder_score=er.cross_encoder_score if hasattr(er, "cross_encoder_score") else None,
+            iou=m.get("iou"),
+            distance=m.get("centroid_dist_meters"),
+            semantic_score=m.get("name_sim"),
+            cross_encoder_score=m.get("sem_a"),
         ),
     )

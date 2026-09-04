@@ -149,19 +149,22 @@ class EntityResolutionAgent:
 
         This is the primary unique logic of this agent — not duplicated
         in component_matcher or pair_features.
+
+        Semantics: LARGE_ESTATE = estate/街道级 aggregates; COMMUNITY_LEVEL =
+        ordinary residential compound; COURTYARD_LEVEL = a courtyard (号院)
+        nested *inside* a compound (e.g. "XX小区9号院").
         """
-        has_large_suffix = any(s in raw_name for s in ("城", "庄", "村", "园", "苑"))
         is_estate_category = category in (
             EntityCategory.MIXED_COMMERCIAL_RESIDENTIAL,
             EntityCategory.RESIDENTIAL_DORMITORY,
         )
         has_district = bool(re.search(r"(街道|镇|乡)", address))
-
         if has_district or is_estate_category:
             return "LARGE_ESTATE"
-        if has_large_suffix:
-            return "COMMUNITY_LEVEL"
-        return "COURTYARD_LEVEL"
+        has_courtyard = bool(re.search(r"\d+\s*(号院|号园|大院|号楼|号)", raw_name))
+        if has_courtyard:
+            return "COURTYARD_LEVEL"
+        return "COMMUNITY_LEVEL"
 
     def _generate_aliases(
         self, raw_name: str, base_name: str, address: str

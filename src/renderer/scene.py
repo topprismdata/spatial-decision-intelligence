@@ -358,16 +358,19 @@ class SceneRenderer:
 
     def _empty_svg(self) -> str:
         c = self.config
-        return (
+        parts = [
             f'<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{c.width}" height="{c.height}">\n'
+            f'width="{c.width}" height="{c.height}">',
             f'  <rect width="{c.width}" height="{c.height}" '
-            f'fill="{c.background_color}" />\n'
+            f'fill="{c.background_color}" />',
             f'  <text x="{c.width / 2}" y="{c.height / 2}" '
             f'text-anchor="middle" font-family="{c.label_font}" '
-            f'font-size="14" fill="#868e96">No data</text>\n'
-            f'</svg>'
-        )
+            f'font-size="14" fill="#868e96">No data</text>',
+        ]
+        if c.show_legend:  # legend is a static overlay, valid without data
+            parts.extend(self._build_legend())
+        parts.append('</svg>')
+        return "\n".join(parts)
 
     @staticmethod
     def _escape(text: str) -> str:
