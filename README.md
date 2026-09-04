@@ -192,7 +192,7 @@ cd spatial-decision-intelligence
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 ### 2. Run 4-Agent Spatial Reasoning & Fence Generation

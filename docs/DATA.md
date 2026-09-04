@@ -19,7 +19,7 @@
 ```bash
 git clone https://github.com/topprismdata/spatial-decision-intelligence.git
 cd spatial-decision-intelligence
-python3 -m venv .venv && source .venv/bin/activate && pip install -e .
+python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
 
 # 1) 取数据（全走公开/合成来源，联网约 1-2 分钟）
 python3 scripts/prepare_sample_data.py --with-fixtures
