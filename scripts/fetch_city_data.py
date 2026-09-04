@@ -47,6 +47,17 @@ def human(nbytes: float) -> str:
     return f"{nbytes:.1f}TB"
 
 
+def _ssl_context():
+    """macOS framework/system Python often lacks a CA chain (CERTIFICATE_VERIFY_FAILED).
+    certifi — normally present via requests — carries its own bundle."""
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def download(url: str, dest: Path, quiet: bool = False) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_suffix(dest.suffix + ".part")
@@ -58,7 +69,7 @@ def download(url: str, dest: Path, quiet: bool = False) -> Path:
     else:
         print(f"GET {url}")
     req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=600) as r:
+    with urllib.request.urlopen(req, timeout=600, context=_ssl_context()) as r:
         status = r.getcode()
         if have and status != 206:  # server ignored Range -> restart clean
             have = 0

@@ -15,7 +15,7 @@ pytest tests -q                # 应 328 passed（无客户数据也能全绿）
 
 1. `README.md` §1–§4 —— 系统定位、4-Agent 架构、Decision-Readiness 契约
 2. `docs/architecture.md` —— 分层职责（哪层可以碰几何、哪层不行）
-3. `docs/DATA.md` —— 仓库**不带**数据；每个数据集怎么一条命令取回、Excel 列契约（§6）
+3. `docs/DATA.md` —— 仓库**不带**数据；每个数据集怎么一条命令取回、Excel 列契约（§6）；**上新城市照 [docs/new-city-guide.md](docs/new-city-guide.md) 逐步走，每步有 `scripts/check_city_data.py` 验收**
 4. 入口二选一：
    - 批处理：`run.py` → `src/pipelines/batch_pipeline.py`
    - 单小区交互：`src/cli.py`（`spatial-di generate/diagnose/inspect`）

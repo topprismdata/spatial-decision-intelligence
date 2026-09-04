@@ -161,5 +161,19 @@ python3 scripts/check_city_data.py --city nanjing --stage output
 
 ## 附 C：西安实跑记录（作者验证，供对照）
 
-> 2026-09-04 · `shaanxi-260831-free.shp.zip` · bbox `33.6961,107.6584,34.7438,109.8238`
-> （数字待跑完回填；你复跑时 Geofabrik 周更可能有 ±2% 出入。）
+> 2026-09-04 · `shaanxi-260831-free.shp.zip`（207 MB）· bbox
+> `33.6961,107.6584,34.7438,109.8238`（Nominatim"西安市"全域）
+
+- input 验收：8 PASS / 1 WARN（省包预期警告 + 2 空几何）
+- 分类耗时：~35 s；产物 geojson 92.2 MB / shp 47.5 MB / html 73.2 MB
+- **总计 129,045 面**：R 8,436 · B1 141 · B2 379 · M 1,726 · S 32 · A3 1,184 ·
+  A4 1,857 · A5 123 · G 77,303 · MIL 68 · AGR 37,728 · U 68（0.05%）
+- output 验收：15 PASS / 0 WARN / 0 FAIL
+- 本次跑出并已修的坑（都进了代码/检查项）：
+  1. `heath`（陕西特有 2,701 面）与 `allotments/cemetery/landfill/vineyard` 漏映射 → 已入 `LANDUSE_GB`
+  2. `adminareas_a` 图层只含街道级，反查不到"西安市" → §3 改 Nominatim
+  3. Python 元组注入 JS `setView` 逗号塌缩 → 静默白屏地图 → 生成器已修 + checker 加 `setView([`/`node --check` 双门
+  4. macOS Python 缺 CA 证书 → fetcher 自动走 certifi
+- 量级对照：北京 47,338 面/1.64 万 km²；西安 129,045 面/1.02 万 km²——西安 landuse
+  碎面多（秦岭沿线大量小块 scrub/forest/heath 并入 G），**不是异常**
+- 你复跑时 Geofabrik 周更可能有 ±2% 出入。

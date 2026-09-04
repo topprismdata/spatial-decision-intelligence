@@ -45,6 +45,7 @@ LANDUSE_GB = {
     "residential": "R", "retail": "B1", "commercial": "B2", "industrial": "M",
     "park": "G", "forest": "G", "grass": "G", "meadow": "G", "scrub": "G",
     "orchard": "G", "recreation_ground": "G", "village_green": "G",
+    "heath": "G",  # shrub heathland; Shaanxi-specific, grouped with scrub/grass
     "military": "MIL", "farmland": "AGR", "farmyard": "AGR", "quarry": "M",
     "cemetery": "U", "landfill": "U", "vineyard": "AGR", "allotments": "AGR",
     "railway": "S", "education": "A3", "hospital": "A5",
@@ -214,9 +215,9 @@ def main():
             parts.append(f"L.polygon([{coords}],{{color:'{color}',weight:1,"
                          f"fillOpacity:0.55}}).addTo(map).bindPopup('{tip}');")
 
-    # map view = centroid of the classified landuse
+    # map view = centroid of the classified landuse (JS array literal, not tuple)
     vc = lu.geometry.representative_point()
-    view = (round(float(vc.y.mean()), 4), round(float(vc.x.mean()), 4))
+    view = f"[{float(vc.y.mean()):.4f}, {float(vc.x.mean()):.4f}]"
 
     legend = "".join(
         f"<div><span style='display:inline-block;width:12px;height:12px;"

@@ -141,17 +141,29 @@ def check_input(data_dir: Path, bbox=None):
               f"({ratio:.0%})")
         if ratio > 0.9:
             warn("bbox 覆盖 >90%：要么整省都选了，要么这就是市包",
-                 "对照 Geofabrik 页面确认；整省数据请调小 bbox（见指南 §1.3）")
+                 "对照 Geofabrik 页面确认；整省数据请调小 bbox（见指南 §3）")
         elif ratio < 0.01:
             fail("bbox 内 residential <1%：bbox 大概率写反或写错坐标",
-                 "顺序必须是 min_lat,min_lng,max_lat,max_lng（西安=34.10,108.50,34.55,109.30）")
+                 "顺序必须是 min_lat,min_lng,max_lat,max_lng（西安=33.6961,107.6584,"
+                 "34.7438,109.8238）")
         else:
             ok(f"bbox 截取比例合理（{ratio:.0%}）")
-    elif total_res > 20000:
-        warn(f"residential 面 {total_res:,} 个：这几乎肯定是省包，city_gb50137 不带 --bbox "
-             "会把整省算进来", "加 --bbox（见指南 §2）")
-    else:
-        ok(f"residential {total_res:,} 个，量级像市包")
+    # province detection without needing --bbox: total landuse volume + geographic
+    # extent diagonal. Residential count alone is NOT a reliable signal (Shaanxi
+    # has 15.8k residential but 350k landuse faces and an 11-degree extent).
+    diag_km = None
+    try:
+        b = lu.total_bounds  # minx,miny,maxx,maxy
+        import math as _m
+        diag_km = _m.hypot((b[2] - b[0]) * 90, (b[3] - b[1]) * 111)
+    except Exception:
+        pass
+    is_province = len(lu) > 150_000 or (diag_km or 0) > 600
+    if bbox is None and is_province:
+        warn(f"抽取规模 {len(lu):,} 面 / 跨度 {diag_km:,.0f} km：这是省包，"
+             "city_gb50137 不带 --bbox 会把整省当一城", "加 --bbox（见指南 §3）")
+    elif bbox is None:
+        ok(f"landuse {len(lu):,} 面，量级像市包（北京 free 包为 37,608）")
 
     # fclass inventory against the mapping table — unknown tags land in U
     try:
@@ -265,6 +277,37 @@ def check_output(city: str, out_root: Path, bbox=None, data_dir=None):
             fail(f"html 标题 {m.group(1)} ≠ features {n}", "地图是旧产物，重跑")
         else:
             ok("html 标题计数与数据一致")
+        # JS gate — two classes of silent map corruption, one check each:
+        #  (a) a Python tuple emitted as JS coords: setView((lat,lng),10) is
+        #      *legal* JS (comma operator) but the map dies silently — the
+        #      Xi'an 2026-09-04 run shipped exactly this (73 MB page, zero
+        #      console errors, blank canvas). Caught by the setView([ check.
+        #  (b) a stray backslash/quote from an OSM name breaking string
+        #      literals. Caught by node --check over the whole inline script.
+        import shutil as _sh
+        import subprocess as _sp
+        import tempfile as _tf
+        if "setView([" in h:
+            ok("地图 setView 坐标为 JS 数组 [lat, lng]")
+        else:
+            fail("setView 参数不是 JS 数组（Python 元组逗号折叠→地图静默空白）",
+                 "用 scripts/city_gb50137.py 最新版重新生成")
+        ms = re.search(r"<script>\n(var map=.*)</script>", h, re.S)
+        if not ms:
+            warn("html 里找不到主 <script> 块", "确认脚本版本")
+        elif _sh.which("node"):
+            with _tf.NamedTemporaryFile("w", suffix=".js", delete=False,
+                                        encoding="utf-8") as tf:
+                tf.write(ms.group(1))
+                tmp = tf.name
+            r2 = _sp.run(["node", "--check", tmp], capture_output=True, text=True)
+            os.unlink(tmp)
+            if r2.returncode == 0:
+                ok("内嵌 JS 通过 node --check（语法门）")
+            else:
+                fail(f"内嵌 JS 语法错误: {r2.stderr[:140]}", "重跑 city_gb50137.py")
+        else:
+            warn("未安装 node，跳过 JS 语法门", "装 node 或双击地图人工验证")
 
     print("\n[4/4] 量级与空间范围 sanity")
     res = codes.get("R", 0)
@@ -305,7 +348,7 @@ def check_output(city: str, out_root: Path, bbox=None, data_dir=None):
         src = data_dir / "gis_osm_landuse_a_free_1.shp"
         if src.exists():
             try:
-                g0 = gpd.read_file(src, usecols=["geometry"])
+                g0 = gpd.read_file(src)  # usecols unsupported on shapefile engines
                 c = g0.geometry.representative_point()
                 min_lat, min_lng, max_lat, max_lng = bbox
                 expect = int(((c.y >= min_lat) & (c.y <= max_lat) &
