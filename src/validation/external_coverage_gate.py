@@ -5,7 +5,7 @@ residential POI within search radius in an external POI gazetteer (Amap)
 is classified as REJECTED (non-residential mislabel: farmland, scrub,
 developing land), not UNRESOLVED.
 
-Design Note: docs/r14-lit-review-optimization-proposal.md P2.
+Design Note: docs/archive_zh/r14-lit-review-optimization-proposal.md P2.
 Empirical basis: full-batch Beijing run 2026-08-27 (1,691 API calls,
 285 true compounds named, ~4,881 residual polygons farmland-dominated).
 """

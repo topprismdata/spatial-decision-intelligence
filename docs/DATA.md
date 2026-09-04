@@ -139,6 +139,6 @@ npz 以管线内源记录 id 命名（`SRC_{idx+1:06d}`，见 `src/ingestion/par
 ## 8. 交接检查清单
 - [ ] `python3 scripts/prepare_sample_data.py --with-fixtures && python3 run.py` 跑通（§0）
 - [ ] `python3 scripts/verify_data_readiness.py` 无 MISSING（按你的角色取所需数据集）
-- [ ] `pytest tests -q`：320 用例，**22 条已知历史失败**（与数据无关，见 `docs/progress-report`）
+- [ ] `pytest tests -q`：**328 用例全绿**（历史 22 条失败已于 2026-09-04 清零，见 commit 57c4b6e）
 - [ ] 再发布任何 OSM 派生物时附 ODbL 署名；高德瓦片派生物不分发
 - [ ] 需要复算真实批次时，向项目方索取 §6 契约的 Excel（仅此场景需要客户数据）

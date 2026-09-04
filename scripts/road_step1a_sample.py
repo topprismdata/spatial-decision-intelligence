@@ -68,6 +68,7 @@ for w in bj_all["坐标面[内置]"].astype(str).head(2000):
         pass
 print("北京全量(前2000) GCJ02 bbox: lat %.4f~%.4f lng %.4f~%.4f" % (min(bys), max(bys), min(bxs), max(bxs)))
 
-sample.to_json("/tmp/precheck_samples.json", orient="records", force_ascii=False)
-json.dump({"bbox_sample": bbox}, open("/tmp/precheck_bbox.json", "w"))
-print("saved /tmp/precheck_samples.json")
+_out = _REPO / "outputs" / "road_precheck"; _out.mkdir(parents=True, exist_ok=True)
+sample.to_json(_out / "samples.json", orient="records", force_ascii=False)
+json.dump({"bbox_sample": bbox}, open(_out / "bbox_sample.json", "w"))
+print(f"saved {_out / 'samples.json'}")

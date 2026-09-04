@@ -129,5 +129,6 @@ for idx, row in sample.reset_index(drop=True).iterrows():
     print(f"[{idx}] {row['group']:6s} {row['source_record_id']} {str(row['小区名称'])[:14]:14s} roads={len(lines):3d} med={med:6.1f}m p90={p90:6.1f}m cov15={cov:.2f} dx={sum(dxs)/len(dxs):+6.1f} dy={sum(dys)/len(dys):+6.1f}")
     time.sleep(1.5)  # politeness
 
-json.dump(results, open("/tmp/precheck_results.json", "w"), ensure_ascii=False, indent=1)
-print("\nsaved /tmp/precheck_results.json |", len(results), "fences")
+_out = _REPO / "outputs" / "road_precheck"; _out.mkdir(parents=True, exist_ok=True)
+json.dump(results, open(_out / "precheck_results.json", "w"), ensure_ascii=False, indent=1)
+print(f"\nsaved {_out / 'precheck_results.json'} | {len(results)} fences")

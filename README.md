@@ -220,9 +220,13 @@ spatial-di diagnose /path/to/your/fences.xlsx --output-dir outputs/
 ### 4. Launch Multi-City Case Inspector
 
 ```bash
-# Open interactive case inspector with 3-tier filtering & CSV export
-open outputs/interactive_inspector.html
+# Serve interactive case inspector (3-tier filtering & CSV export) on http://localhost:8000
+spatial-di inspect --output-dir outputs/
 ```
+
+> For the full data runbook (what data the repo does NOT ship, how to fetch each
+> dataset, the input-Excel column contract, offline mode), see
+> **[docs/DATA.md](docs/DATA.md)**.
 
 ---
 
@@ -242,7 +246,7 @@ open outputs/interactive_inspector.html
 ## 9. Beijing Residential Open-Data Benchmark (R0–R13)
 
 > **Goal:** assess discovery, boundary reconstruction, and trusted-state publication for Beijing residential entities using free open data only.
-> **Status:** R0–R13 fully closed; 24 actionable failure domains 100% resolved. [Full report](docs/final-progress-report-r0-r13.md)
+> **Status:** R0–R13 fully closed; 24 actionable failure domains 100% resolved. [Full report](docs/archive_zh/final-progress-report-r0-r13.md)
 
 ### Headline Results
 
@@ -276,7 +280,7 @@ open outputs/interactive_inspector.html
 
 ### R14 Plan (Literature-Driven Optimization)
 
-Top-5 candidates from an 8-dimension literature survey (see the [R14 proposal](docs/r14-lit-review-optimization-proposal.md)):
+Top-5 candidates from an 8-dimension literature survey (see the [R14 proposal](docs/archive_zh/r14-lit-review-optimization-proposal.md)):
 
 | # | Improvement | Expected gain | Complexity |
 |:-:|:---|:---|:-:|

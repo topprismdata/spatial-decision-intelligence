@@ -150,9 +150,12 @@ if __name__=="__main__":
     # 试点: 天坛公园
     poly, img = process_scenic("天坛公园", 116.4051, 39.8817, 17)
     if poly:
-        with open("/tmp/tiantan_satellite_wall.geojson","w") as f:
+        _root = os.environ.get("SDI_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        os.makedirs(os.path.join(_root, "outputs"), exist_ok=True)
+        _out = os.path.join(_root, "outputs", "tiantan_satellite_wall.geojson")
+        with open(_out, "w") as f:
             json.dump({"type":"FeatureCollection","features":[{
                 "type":"Feature","geometry":json.loads(json.dumps(poly.__geo_interface__)),
                 "properties":{"name":"天坛公园卫星检测"}
             }]}, f, ensure_ascii=False)
-        print("saved geojson")
+        print(f"saved {_out}")

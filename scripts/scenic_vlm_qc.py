@@ -2,7 +2,7 @@
 import os as _o; from pathlib import Path as _P
 _REPO = _P(_o.environ.get('SDI_ROOT') or _P(__file__).resolve().parents[1])
 import warnings; warnings.filterwarnings("ignore")
-import os, json, re, base64, glob
+import os, json, re, base64, glob, io
 import requests
 from PIL import Image
 import pandas as pd
@@ -17,8 +17,9 @@ def vlm_judge(image_path, spot_name):
     w,h=img.size; sc=700/max(w,h)
     if sc < 1:
         img=img.resize((int(w*sc),int(h*sc)),Image.LANCZOS)
-    img.save("/tmp/_qc_tmp.jpg","JPEG",quality=70)
-    b64=base64.b64encode(open("/tmp/_qc_tmp.jpg","rb").read()).decode()
+    _buf = io.BytesIO()
+    img.save(_buf, "JPEG", quality=70)
+    b64 = base64.b64encode(_buf.getvalue()).decode()
     
     req={"model":"MiniMax-M3","messages":[{"role":"user","content":[
       {"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{b64}"}},
